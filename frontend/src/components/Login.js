@@ -1,225 +1,150 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import logoImage from '../Logo.jpg';
 import '../styles/auth.css';
+import config from '../config'; // Updated import path
 
 const Login = () => {
-  const [isUser, setIsUser] = useState(true); // Toggle between User and Admin
-  const [isLogin, setIsLogin] = useState(true); // Toggle between Login and Register for users
+  const [mode, setMode] = useState('login'); // 'login' | 'register'
   const [name, setName] = useState('');
-  const [number, setNumber] = useState('');
-  const [password, setPassword] = useState(''); // For admin login
-
+  const [phone, setPhone] = useState('');
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleUserLogin = async (e) => {
+  // Registration handler
+  const handleRegister = async (e) => {
     e.preventDefault();
-    setIsLoading(true);
+    setLoading(true);
     setError('');
     try {
-      const response = await axios.post('http://localhost:5000/api/user/login', {
-        name,
-        number
-      });
-      
-      if (response.data.success) {
-        const userId = response.data.userId;
-        // After login, fetch user details to check if KYC is already done
-        // const userRes = await axios.get(`http://localhost:5000/api/user/${userId}`);
-        // const user = userRes.data;
-        
-        // If KYC is done (all fields and docs present), go to dashboard, else go to KYC
-        // if (
-        //   user.fullName && user.panNumber && user.aadhaarNumber &&
-        //   user.panCardPath && user.aadhaarCardPath
-        // ) {
+      await axios.post(`${config.API_URL}/api/user/register`, { name, number: phone });
+      setMode('login');
+      setName('');
+      setPhone('');
+      alert('Registration successful! Please login.');
+    } catch (err) {
+      setError(err.response?.data?.message || 'Registration failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+  // Login handler (no OTP)
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+    try {
+      const res = await axios.post(`${config.API_URL}/api/user/login`, { name, number: phone });
+      if (res.data && res.data.userId) {
+        const userId = res.data.userId;
+        // First check the status to determine if all steps are complete
+        const statusRes = await axios.get(`${config.API_URL}/api/user/${userId}/status`);
+        const appStatus = statusRes.data.status;
+        // Fetch user details to check KYC
+        const userRes = await axios.get(`${config.API_URL}/api/user/${userId}`);
+        const user = userRes.data;
+        if (!user.fullName || !user.panNumber || !user.aadhaarNumber || !user.panCardPath || !user.aadhaarCardPath) {
+          navigate(`/kyc/${userId}`);
+        } else {
           navigate(`/user-dashboard/${userId}`);
-        // } else {
-        //   navigate(`/kyc/${userId}`);
-        // }
+        }
       } else {
-        setError(response.data.message || 'Login failed. Please check your credentials.');
+        setError('Invalid login response from server');
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Error logging in. Please try again.');
+      setError(err.response?.data?.message || 'Login failed');
     } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleUserRegister = async (e) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setError('');
-    try {
-      const response = await axios.post('http://localhost:5000/api/user/register', {
-        name,
-        number
-      });
-      
-      if (response.data.success) {
-        setIsLogin(true);
-        setName('');
-        setNumber('');
-        // setPassword(''); // Password is for admin only
-        setError('Registration successful! Please login.');
-      } else {
-        setError(response.data.message || 'Registration failed. Please try again.');
-      }
-    } catch (err) {
-      setError(err.response?.data?.message || 'Error registering. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleAdminLogin = async (e) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setError('');
-    try {
-      const response = await axios.post('http://localhost:5000/api/admin/login', {
-        username: name,
-        password,
-      });
-      if (response.data.success) {
-        navigate('/admin-dashboard');
-      }
-    } catch (err) {
-      setError(err.response?.data?.message || 'Error logging in. Please try again.');
-    } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
   return (
-    <div className="login-container" style={{flexDirection:'column'}}>
-      <div style={{width:'100%',display:'flex',alignItems:'center',justifyContent:'center',marginBottom:32}}>
-        <img src="alethemyra-logo.jpg" alt="Alethemyra Logo" style={{height:48,marginRight:16}} />
-        <div>
-          <div style={{fontWeight:700,fontSize:22,color:'#7C6A4E',letterSpacing:1}}>Alethemyra</div>
-          <div style={{fontWeight:500,fontSize:16,color:'#C2A66C'}}>Cred-Mod-I</div>
+    <div className="auth-container">
+      <div className="auth-card">
+        <div className="auth-header">
+          <div className="brand-container">
+            <img src={logoImage} alt="Alethemyra Logo" className="auth-logo-img" />
+            <div className="brand-text">
+              <h1 className="company-name">Alethemyra</h1>
+            </div>
+          </div>
         </div>
-      </div>
-      <div className="login-card">
-        <h1 className="login-title">Welcome Back</h1>
-        <div className="role-toggle">
-          <button
-            className={isUser ? 'role-button active' : 'role-button'}
-            onClick={() => {
-              setIsUser(true);
-              setError('');
-              setName('');
-              setNumber('');
-              setPassword('');
-            }}
-          >
-            User
-          </button>
-          <button
-            className={!isUser ? 'role-button active' : 'role-button'}
-            onClick={() => {
-              setIsUser(false);
-              setError('');
-              setName('');
-              setNumber('');
-              setPassword('');
-            }}
-          >
-            Admin
-          </button>
-        </div>
-
-        {isUser ? (
-          <>
-            <h2 className="form-title">{isLogin ? 'User Login' : 'User Register'}</h2>
-            <form onSubmit={isLogin ? handleUserLogin : handleUserRegister}>
-              <div className="form-group">
-                <label htmlFor="name" className="form-label">Full Name</label>
-                <input
-                  id="name"
-                  name="name"
-                  type="text"
-                  className="form-input"
-                  value={name}
-                  onChange={e => setName(e.target.value)}
-                  placeholder="Enter your full name"
-                  required
-                />
-              </div>
-              <div className="form-group">
-                <label htmlFor="number" className="form-label">Phone Number</label>
-                <input
-                  id="number"
-                  name="number"
-                  type="text"
-                  className="form-input"
-                  value={number}
-                  onChange={e => setNumber(e.target.value)}
-                  placeholder="Enter your phone number"
-                  required
-                />
-              </div>
-              {error && <p className="error-message">{error}</p>}
-              <button
-                type="submit"
-                className="submit-button"
-                disabled={isLoading}
-              >
-                {isLoading ? 'Processing...' : (isLogin ? 'Login' : 'Register')}
-              </button>
-            </form>
-            <p className="toggle-link">
-              {isLogin ? "Don't have an account? " : 'Already have an account? '}
-              <span
-                onClick={() => {
-                  setIsLogin(!isLogin);
-                  setError('');
-                  setName('');
-                  setNumber('');
-                  setPassword('');
-                }}
-              >
-                {isLogin ? 'Register' : 'Login'}
-              </span>
-            </p>
-          </>
+        
+        {mode === 'register' ? (
+          <form className="auth-form" onSubmit={handleRegister}>
+            <h1 className="auth-title">Create Account</h1>
+            <div className="form-group">
+              <label>Full Name</label>
+              <input
+                type="text"
+                value={name}
+                onChange={e => setName(e.target.value)}
+                placeholder="Enter your full name"
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label>Phone Number</label>
+              <input
+                type="tel"
+                value={phone}
+                onChange={e => setPhone(e.target.value)}
+                placeholder="Enter your phone number"
+                required
+              />
+            </div>
+            <button className="auth-button" type="submit" disabled={loading}>
+              {loading ? 'Creating Account...' : 'Register'}
+            </button>
+            <div className="auth-switch">
+              Already have an account?
+              <span onClick={() => { setMode('login'); setError(''); }}>Login</span>
+            </div>
+            {error && <div className="error-message">{error}</div>}
+          </form>
         ) : (
-          <>
-            <h2 className="form-title">Admin Login</h2>
-            <form onSubmit={handleAdminLogin}>
-              <div className="form-group">
-                <label className="form-label">Username</label>
-                <input
-                  type="text"
-                  className="form-input"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  required
-                />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Password</label>
-                <input
-                  type="password"
-                  className="form-input"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
-              </div>
-              {error && <p className="error-message">{error}</p>}
-              <button
-                type="submit"
-                className="submit-button"
-                disabled={isLoading}
+          <form className="auth-form" onSubmit={handleLogin}>
+            <h1 className="auth-title">Welcome Back</h1>
+            <div className="form-group">
+              <label>Full Name</label>
+              <input
+                type="text"
+                value={name}
+                onChange={e => setName(e.target.value)}
+                placeholder="Enter your full name"
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label>Phone Number</label>
+              <input
+                type="tel"
+                value={phone}
+                onChange={e => setPhone(e.target.value)}
+                placeholder="Enter your phone number"
+                required
+              />
+            </div>
+            <button className="auth-button" type="submit" disabled={loading}>
+              {loading ? 'Logging in...' : 'Login'}
+            </button>
+            <div className="auth-switch">
+              Don't have an account?
+              <span onClick={() => { setMode('register'); setError(''); }}>Register</span>
+            </div>
+            <div className="auth-switch">
+              <button 
+                onClick={() => navigate('/admin')} 
+                className="admin-login-button"
+                type="button"
               >
-                {isLoading ? 'Processing...' : 'Login'}
+                Admin Login
               </button>
-            </form>
-          </>
+            </div>
+            {error && <div className="error-message">{error}</div>}
+          </form>
         )}
       </div>
     </div>
