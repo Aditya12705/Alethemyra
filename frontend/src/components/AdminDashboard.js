@@ -283,6 +283,14 @@ const ApplicationSection = ({ users, loading, error, handleStatusUpdate, navigat
                     padding: '16px 20px', 
                     color: '#fff', 
                     fontWeight: 600, 
+                    textAlign: 'left', 
+                    width: '10%',
+                    whiteSpace: 'nowrap'
+                  }}>Risk Level</th>
+                  <th style={{ 
+                    padding: '16px 20px', 
+                    color: '#fff', 
+                    fontWeight: 600, 
                     textAlign: 'center', 
                     width: '14%',
                     whiteSpace: 'nowrap'
@@ -339,6 +347,11 @@ const ApplicationSection = ({ users, loading, error, handleStatusUpdate, navigat
                     <td style={{ padding: '16px 20px', textAlign: 'left' }}>
                       <span style={{fontWeight: 600, color: '#003B6F', fontSize: '13px'}}>
                         {user.crust_rating || 'N/A'}
+                      </span>
+                    </td>
+                    <td style={{ padding: '16px 20px', textAlign: 'left' }}>
+                      <span style={{fontWeight: 600, color: '#003B6F', fontSize: '13px'}}>
+                        {user.risk_level || 'N/A'}
                       </span>
                     </td>
                     <td style={{ padding: '16px 24px', textAlign: 'center' }}>
