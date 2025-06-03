@@ -268,9 +268,6 @@ const fileFilter = (req, file, cb) => {
 // Re-initialize multer with file filter if needed
 const uploadWithFilter = multer({ storage: storage, fileFilter: fileFilter, limits: { fileSize: 5 * 1024 * 1024 } });
 
-// New Multer instance for KYC without file filter
-const uploadKycWithoutFilter = multer({ storage: storage, limits: { fileSize: 5 * 1024 * 1024 } });
-
 // Helper function to get current date
 const getCurrentDate = () => new Date().toISOString().split('T')[0]; // Keep as is, stores as VARCHAR
 
@@ -359,98 +356,137 @@ app.post('/api/admin/login', async (req, res) => { // Made async
 });
 
 // --- Submit KYC ---
-// Use uploadKycWithoutFilter for file uploads if you want the file filter applied
-app.post('/api/kyc', uploadKycWithoutFilter.fields([
-  { name: 'panCard', maxCount: 1 },
-  { name: 'aadhaarCard', maxCount: 1 },
-  { name: 'fullName', maxCount: 1 },
-  { name: 'panNumber', maxCount: 1 },
-  { name: 'aadhaarNumber', maxCount: 1 },
-  { name: 'userId', maxCount: 1 }
-]), async (req, res) => { // Made async
+// Manual handling of multipart form data for KYC
+app.post('/api/kyc', async (req, res) => { // Made async
+  console.log('Received request for /api/kyc (Manual Multipart Handling)');
   try {
-    console.log('Received request for /api/kyc');
-    const { fullName, panNumber, aadhaarNumber, userId } = req.body;
-    console.log('Extracted body data:', { fullName, panNumber, aadhaarNumber, userId });
+    const busboy = require('busboy');
+    const bb = busboy({ headers: req.headers });
 
-    const panCardFile = req.files && req.files['panCard'] ? req.files['panCard'][0] : null;
-    const aadhaarCardFile = req.files && req.files['aadhaarCard'] ? req.files['aadhaarCard'][0] : null;
-    const panCardUrl = panCardFile ? panCardFile.path : null; // .path contains the Cloudinary URL
-    const aadhaarCardUrl = aadhaarCardFile ? aadhaarCardFile.path : null;
-    const createdAt = getCurrentDate();
-    console.log('File URLs:', { panCardUrl, aadhaarCardUrl });
+    const fields = {};
+    const files = {};
 
-    if (!fullName || !panNumber || !aadhaarNumber || !panCardUrl || !aadhaarCardUrl || !userId) {
-      console.log('Validation failed: Missing required fields or files');
-      // Consider deleting uploaded files from Cloudinary if validation fails here
-      if (panCardFile && panCardFile.public_id) {
-        console.log('Attempting to destroy panCard from Cloudinary:', panCardFile.public_id);
-        cloudinary.uploader.destroy(panCardFile.public_id);
+    bb.on('file', (fieldname, file, filename, encoding, mimetype) => {
+      console.log('File ', fieldname, filename, encoding, mimetype);
+      // Buffer the file for Cloudinary upload
+      const fileBuffer = [];
+      file.on('data', (data) => { fileBuffer.push(data); });
+      file.on('end', () => { files[fieldname] = { buffer: Buffer.concat(fileBuffer), mimetype, originalname: filename }; });
+    });
+
+    bb.on('field', (fieldname, val, fieldnameTruncated, valTruncated, encoding, mimetype) => {
+      console.log('Field ', fieldname, val);
+      fields[fieldname] = val;
+    });
+
+    bb.on('finish', async () => {
+      console.log('Busboy finished parsing form.');
+      console.log('Parsed fields:', fields);
+      console.log('Parsed files:', Object.keys(files));
+
+      const { fullName, panNumber, aadhaarNumber, userId } = fields;
+
+      const panCardFile = files['panCard'];
+      const aadhaarCardFile = files['aadhaarCard'];
+
+      // Upload files to Cloudinary manually
+      let panCardUrl = null;
+      let aadhaarCardUrl = null;
+      let panCardPublicId = null;
+      let aadhaarCardPublicId = null;
+
+      if (panCardFile) {
+        try {
+          const result = await cloudinary.uploader.upload(bufferToDataURI(panCardFile.buffer, panCardFile.mimetype), {
+            folder: 'clutch_app_uploads', resource_type: 'auto'
+          });
+          panCardUrl = result.secure_url;
+          panCardPublicId = result.public_id;
+        } catch (uploadErr) {
+          console.error('Cloudinary upload error (PAN Card):', uploadErr);
+          // Continue to check other files, but validation might fail later
+        }
       }
-      if (aadhaarCardFile && aadhaarCardFile.public_id) {
-         console.log('Attempting to destroy aadhaarCard from Cloudinary:', aadhaarCardFile.public_id);
-        cloudinary.uploader.destroy(aadhaarCardFile.public_id);
+
+      if (aadhaarCardFile) {
+         try {
+          const result = await cloudinary.uploader.upload(bufferToDataURI(aadhaarCardFile.buffer, aadhaarCardFile.mimetype), {
+            folder: 'clutch_app_uploads', resource_type: 'auto'
+          });
+          aadhaarCardUrl = result.secure_url;
+          aadhaarCardPublicId = result.public_id;
+        } catch (uploadErr) {
+          console.error('Cloudinary upload error (Aadhaar Card):', uploadErr);
+          // Continue to check other files, but validation might fail later
+        }
       }
-      return res.status(400).json({ success: false, message: 'All fields, files, and userId are required.' });
-    }
-    
-    // Database checks - adjust for pg
-    console.log('Checking user_credentials existence for userId:', userId);
-    const userCredentialExists = await db.query(`SELECT * FROM user_credentials WHERE id = $1`, [userId]);
-    if (userCredentialExists.rows.length === 0) {
-       console.log('user_credentials not found for userId:', userId);
-       // Consider deleting uploaded files from Cloudinary
-      if (panCardFile && panCardFile.public_id) cloudinary.uploader.destroy(panCardFile.public_id);
-      if (aadhaarCardFile && aadhaarCardFile.public_id) cloudinary.uploader.destroy(aadhaarCardFile.public_id);
-      return res.status(404).json({ success: false, message: 'User not found in user_credentials.' });
-    }
-    console.log('user_credentials found.');
 
-    console.log('Checking users table existence for userId:', userId);
-    const userExists = await db.query(`SELECT * FROM users WHERE id = $1`, [userId]);
-     if (userExists.rows.length === 0) {
-       console.log('User not found in users table for userId:', userId);
-      // Consider deleting uploaded files from Cloudinary
-      if (panCardFile && panCardFile.public_id) cloudinary.uploader.destroy(panCardFile.public_id);
-      if (aadhaarCardFile && aadhaarCardFile.public_id) cloudinary.uploader.destroy(aadhaarCardFile.public_id);
-      return res.status(404).json({ success: false, message: 'User not found in users table.' });
-    }
-    console.log('User found in users table.');
+      const createdAt = getCurrentDate();
+      console.log('File URLs after upload:', { panCardUrl, aadhaarCardUrl });
 
-    // Update users table - adjust for pg parameterized query
-    console.log('Attempting to update users table for userId:', userId);
-    await db.query(
-      `UPDATE users SET fullName = $1, panNumber = $2, aadhaarNumber = $3, panCardPath = $4, aadhaarCardPath = $5, createdAt = $6 WHERE id = $7`,
-      // Save the Cloudinary URLs (or public_id if you prefer) to the database
-      [fullName, panNumber, aadhaarNumber, panCardUrl, aadhaarCardUrl, createdAt, userId]
-    );
-    console.log('Successfully updated users table for userId:', userId);
+      if (!fullName || !panNumber || !aadhaarNumber || !panCardUrl || !aadhaarCardUrl || !userId) {
+        console.log('Validation failed: Missing required fields or files after upload attempt.');
+        // Clean up uploaded files if validation fails after upload
+        if (panCardPublicId) cloudinary.uploader.destroy(panCardPublicId);
+        if (aadhaarCardPublicId) cloudinary.uploader.destroy(aadhaarCardPublicId);
+        return res.status(400).json({ success: false, message: 'All fields, files, and userId are required.' });
+      }
 
-    res.json({ success: true, userId: userId });
+      // Database checks - adjust for pg
+      console.log('Checking user_credentials existence for userId:', userId);
+      const userCredentialExists = await db.query(`SELECT * FROM user_credentials WHERE id = $1`, [userId]);
+      if (userCredentialExists.rows.length === 0) {
+         console.log('user_credentials not found for userId:', userId);
+         // Clean up uploaded files
+        if (panCardPublicId) cloudinary.uploader.destroy(panCardPublicId);
+        if (aadhaarCardPublicId) cloudinary.uploader.destroy(aadhaarCardPublicId);
+        return res.status(404).json({ success: false, message: 'User not found in user_credentials.' });
+      }
+      console.log('user_credentials found.');
+
+      console.log('Checking users table existence for userId:', userId);
+      const userExists = await db.query(`SELECT * FROM users WHERE id = $1`, [userId]);
+       if (userExists.rows.length === 0) {
+         console.log('User not found in users table for userId:', userId);
+        // Clean up uploaded files
+        if (panCardPublicId) cloudinary.uploader.destroy(panCardPublicId);
+        if (aadhaarCardPublicId) cloudinary.uploader.destroy(aadhaarCardPublicId);
+        return res.status(404).json({ success: false, message: 'User not found in users table.' });
+      }
+      console.log('User found in users table.');
+
+      // Update users table - adjust for pg parameterized query
+      console.log('Attempting to update users table for userId:', userId);
+      await db.query(
+        `UPDATE users SET fullName = $1, panNumber = $2, aadhaarNumber = $3, panCardPath = $4, aadhaarCardPath = $5, createdAt = $6 WHERE id = $7`,
+        [fullName, panNumber, aadhaarNumber, panCardUrl, aadhaarCardUrl, createdAt, userId]
+      );
+      console.log('Successfully updated users table for userId:', userId);
+
+      res.json({ success: true, userId: userId });
+    });
+
+    // Pipe the request stream to Busboy
+    req.pipe(bb);
 
   } catch (e) {
-    console.error('Detailed error in /api/kyc (in route handler):', {
+    console.error('Detailed error in /api/kyc (Manual Multipart Handling):', {
       message: e.message,
       stack: e.stack,
       code: e.code
     });
-     // Consider deleting uploaded files from Cloudinary in case of other errors
-     // Note: Checking for existence and public_id before attempting destroy
-    if (req.files && req.files['panCard'] && req.files['panCard'][0] && req.files['panCard'][0].public_id) {
-       console.log('Attempting to destroy panCard from Cloudinary in catch block:', req.files['panCard'][0].public_id);
-       cloudinary.uploader.destroy(req.files['panCard'][0].public_id);
-    }
-    if (req.files && req.files['aadhaarCard'] && req.files['aadhaarCard'][0] && req.files['aadhaarCard'][0].public_id) {
-       console.log('Attempting to destroy aadhaarCard from Cloudinary in catch block:', req.files['aadhaarCard'][0].public_id);
-       cloudinary.uploader.destroy(req.files['aadhaarCard'][0].public_id);
-    }
-    res.status(500).json({ 
+     res.status(500).json({ 
       success: false, 
       message: 'Error submitting KYC',
       error: process.env.NODE_ENV === 'development' ? e.message : 'Internal server error'
     });
   }
 });
+
+// Helper function to convert buffer to data URI (required by Cloudinary upload from buffer)
+function bufferToDataURI(buffer, mimetype) {
+  return `data:${mimetype};base64,${buffer.toString('base64')}`;
+}
 
 // Multer error handler
 app.use((err, req, res, next) => {
