@@ -207,7 +207,7 @@ function calculateCrustScore(inputs) {
     compositeScore = parseFloat(compositeScore.toFixed(1)); // Format composite score to 1 decimal place
 
     // Determine Rating and Risk Level based on the composite score
-    let rating, risk;
+    let rating = "", risk = "";
     if (compositeScore >= 9.0) {
       rating = "A+"; risk = "Very Low";
     } else if (compositeScore >= 8.0) {
