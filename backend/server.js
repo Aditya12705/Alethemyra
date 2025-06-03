@@ -268,6 +268,8 @@ const fileFilter = (req, file, cb) => {
 // Re-initialize multer with file filter if needed
 const uploadWithFilter = multer({ storage: storage, fileFilter: fileFilter, limits: { fileSize: 5 * 1024 * 1024 } });
 
+// New Multer instance for KYC without file filter
+const uploadKycWithoutFilter = multer({ storage: storage, limits: { fileSize: 5 * 1024 * 1024 } });
 
 // Helper function to get current date
 const getCurrentDate = () => new Date().toISOString().split('T')[0]; // Keep as is, stores as VARCHAR
@@ -357,8 +359,8 @@ app.post('/api/admin/login', async (req, res) => { // Made async
 });
 
 // --- Submit KYC ---
-// Use uploadWithFilter for file uploads if you want the file filter applied
-app.post('/api/kyc', uploadWithFilter.fields([
+// Use uploadKycWithoutFilter for file uploads if you want the file filter applied
+app.post('/api/kyc', uploadKycWithoutFilter.fields([
   { name: 'panCard', maxCount: 1 },
   { name: 'aadhaarCard', maxCount: 1 },
   { name: 'fullName', maxCount: 1 },
