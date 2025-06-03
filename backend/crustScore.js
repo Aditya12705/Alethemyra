@@ -248,7 +248,7 @@ function calculateCrustScore(inputs) {
   compositeScore = Math.round(compositeScore * 100) / 100; // Round to 2 decimal places
 
   // Determine Rating and Risk Level based on the composite score and red flags
-  let rating, risk;
+  let rating = "", risk = "";
   if (redFlags.length > 0) {
     compositeScore = 0; // Score is 0 if there are red flags
     rating = "D"; risk = "Very High";
