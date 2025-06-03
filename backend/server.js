@@ -510,7 +510,7 @@ app.post('/api/submit/:id', uploadWithFilter.fields([
   { name: 'occcDoc', maxCount: 1 },
   { name: 'reraDoc', maxCount: 1 },
   { name: 'ownershipDoc', maxCount: 1 },
-  { name: 'gpsPhotos', maxCount: 1 },
+  { name: 'gpsDoc', maxCount: 1 },
   { name: 'motherDeedDoc', maxCount: 1 },
   { name: 'familyTreeDoc', maxCount: 1 },
   { name: 'nocDoc', maxCount: 1 },
@@ -548,7 +548,7 @@ app.post('/api/submit/:id', uploadWithFilter.fields([
     addUpdate('occcDoc', req.files);
     addUpdate('reraDoc', req.files);
     addUpdate('ownershipDoc', req.files);
-    addUpdate('gpsPhotos', req.files);
+    addUpdate('gpsDoc', req.files);
     addUpdate('motherDeedDoc', req.files);
     addUpdate('familyTreeDoc', req.files);
     addUpdate('nocDoc', req.files);
