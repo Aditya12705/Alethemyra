@@ -25,10 +25,39 @@ const AdminUserDocuments = () => {
 
   useEffect(() => {
     if (selectedUser) {
-      axios.get(`${config.API_URL}/api/user/${selectedUser.id}/documents`).then(res => {
-        setDocuments(res.data.documents || []);
+      axios.get(`${config.API_URL}/api/user/${selectedUser.id}`).then(res => {
+        const userData = res.data;
+        const extractedDocuments = [
+          { type: 'PAN Card', path: userData.pancardpath },
+          { type: 'Aadhaar Card', path: userData.aadhaarcardpath },
+          { type: 'Mother Deed', path: userData.motherdeeddocpath },
+          { type: 'Family Tree', path: userData.familytreedocpath },
+          { type: 'NOC', path: userData.nocdocpath },
+          { type: 'Ownership Document', path: userData.ownershipdocpath },
+          { type: 'Regulatory Document', path: userData.regulatorydocpath },
+          { type: 'GPS Document', path: userData.gpsdocpath },
+          { type: 'BBMP Document', path: userData.bbmpdocpath },
+          { type: 'Plan Approval Document', path: userData.planapprovaldocpath },
+          { type: 'Khata Certificated Document', path: userData.khatacertificatedocpath },
+          { type: 'Fiscal Year Land Tax Invoiced Document', path: userData.fiscalyearlandtaxinvoicedocpath },
+          { type: 'Betterment Certificated Document', path: userData.bettermentcertificatedocpath },
+          { type: 'BWSSB1 Document', path: userData.bwssb1docpath },
+          { type: 'BWSSB2 Document', path: userData.bwssb2docpath },
+          { type: 'BWSSB3 Document', path: userData.bwssb3docpath },
+          { type: 'KEB1 Document', path: userData.keb1docpath },
+          { type: 'KEB2 Document', path: userData.keb2docpath },
+          { type: 'KEB3 Document', path: userData.keb3docpath },
+          { type: 'EC Document', path: userData.ecdocpath },
+          { type: 'OCC Document', path: userData.occcdocpath },
+          { type: 'RERA Document', path: userData.reradocpath },
+          { type: 'Land Document', path: userData.landdocpath },
+          { type: 'JV Document', path: userData.jvdocpath },
+          { type: 'Legal Disputed Document', path: userData.legaldisputedocpath },
+        ].filter(doc => doc.path); // Filter out documents with null or undefined paths
+
+        setDocuments(extractedDocuments);
         setSelectedDoc(null);
-        setNotes(res.data.notes || '');
+        setNotes(userData.documentnotes || '');
       });
     } else {
       setDocuments([]);
