@@ -38,17 +38,10 @@ const Login = () => {
     try {
       const res = await axios.post(`${config.API_URL}/api/user/login`, { name, number: phone });
       if (res.data && res.data.userId) {
-        const userId = res.data.userId;
-        // First check the status to determine if all steps are complete
-        const statusRes = await axios.get(`${config.API_URL}/api/user/${userId}/status`);
-        const appStatus = statusRes.data.status;
-        // Fetch user details to check KYC
-        const userRes = await axios.get(`${config.API_URL}/api/user/${userId}`);
-        const user = userRes.data;
-        if (!user.fullName || !user.panNumber || !user.aadhaarNumber || !user.panCardPath || !user.aadhaarCardPath) {
-          navigate(`/kyc/${userId}`);
+        if (res.data.kycDone) {
+          navigate(`/user-dashboard/${res.data.userId}`);
         } else {
-          navigate(`/user-dashboard/${userId}`);
+          navigate(`/kyc/${res.data.userId}`);
         }
       } else {
         setError('Invalid login response from server');
