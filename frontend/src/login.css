@@ -1,0 +1,208 @@
+body {
+  margin: 0;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  background: #F4F4F2;
+  min-height: 100vh;
+}
+
+.login-container {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: transparent;
+}
+
+.login-card {
+  background: #fff;
+  padding: 48px 36px 36px 36px;
+  border-radius: 32px;
+  box-shadow: 0 8px 32px 0 rgba(124, 106, 78, 0.10);
+  width: 100%;
+  max-width: 400px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  border: 2px solid #7C6A4E;
+}
+
+.login-card::before {
+  content: '';
+  position: absolute;
+  top: -60px;
+  right: -60px;
+  width: 140px;
+  height: 140px;
+  background: radial-gradient(circle, #C2A66C33 60%, transparent 100%);
+  border-radius: 50%;
+  z-index: 0;
+}
+
+.login-title {
+  font-size: 32px;
+  font-weight: bold;
+  color: #7C6A4E;
+  margin-bottom: 28px;
+  letter-spacing: 1px;
+  z-index: 1;
+  position: relative;
+}
+
+.role-toggle {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 28px;
+  gap: 12px;
+  z-index: 1;
+  position: relative;
+}
+
+.role-button {
+  padding: 12px 28px;
+  font-size: 16px;
+  font-weight: 500;
+  color: #434343;
+  background-color: #F4F4F2;
+  border: 2px solid #7C6A4E;
+  border-radius: 24px;
+  margin: 0;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(.4,0,.2,1);
+  box-shadow: 0 2px 8px 0 rgba(194,166,108,0.04);
+}
+
+.role-button.active,
+.role-button:hover {
+  background-color: #7C6A4E;
+  color: #fff;
+  border-color: #7C6A4E;
+  box-shadow: 0 4px 16px 0 rgba(124,106,78,0.10);
+}
+
+.form-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #7C6A4E;
+  margin-bottom: 18px;
+  z-index: 1;
+  position: relative;
+}
+
+.form-group {
+  margin-bottom: 20px;
+  text-align: left;
+  z-index: 1;
+  position: relative;
+}
+
+.form-label {
+  display: block;
+  font-size: 15px;
+  color: #434343;
+  margin-bottom: 7px;
+  font-weight: 500;
+}
+
+.form-input {
+  width: 100%;
+  padding: 12px 16px;
+  font-size: 15px;
+  border: 1.5px solid #7C6A4E;
+  border-radius: 18px;
+  outline: none;
+  background: #f8f8f8;
+  transition: border-color 0.3s;
+  box-sizing: border-box;
+}
+
+.form-input:focus {
+  border-color: #C2A66C;
+  background: #fff;
+}
+
+.error-message {
+  color: #F56565;
+  font-size: 14px;
+  margin-bottom: 15px;
+  text-align: left;
+  padding-left: 2px;
+}
+
+.submit-button {
+  width: 100%;
+  padding: 14px 0;
+  font-size: 17px;
+  font-weight: 600;
+  color: #FFFFFF;
+  background: linear-gradient(90deg, #7C6A4E 60%, #C2A66C 100%);
+  border: none;
+  border-radius: 24px;
+  cursor: pointer;
+  transition: background 0.3s;
+  margin-top: 8px;
+  box-shadow: 0 2px 8px 0 rgba(124,106,78,0.08);
+}
+
+.submit-button:hover {
+  background: #6A593E !important;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(124, 106, 78, 0.25);
+}
+
+.submit-button:hover:not(:disabled) {
+  background: linear-gradient(90deg, #C2A66C 60%, #7C6A4E 100%);
+}
+
+.submit-button:disabled {
+  background: #e0e0e0;
+  color: #b0b0b0;
+  cursor: not-allowed;
+}
+
+.toggle-link {
+  margin-top: 22px;
+  font-size: 15px;
+  color: #434343;
+  z-index: 1;
+  position: relative;
+}
+
+.toggle-link span {
+  color: #C2A66C;
+  cursor: pointer;
+  text-decoration: underline;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+
+.toggle-link span:hover {
+  color: #7C6A4E;
+}
+
+/* Remove bubble decorations */
+.login-container::before,
+.login-container::after {
+  display: none !important;
+  content: none !important;
+}
+
+.doc-upload-submit {
+  background: #7C6A4E !important;
+  color: white !important;
+  padding: 16px 0 !important;
+  border-radius: 12px !important;
+  border: none !important;
+  font-weight: 700 !important;
+  cursor: pointer !important;
+  width: 100% !important;
+  font-size: 1.1rem !important;
+  margin-top: 24px !important;
+  box-shadow: 0 4px 12px rgba(124, 106, 78, 0.2) !important;
+  transition: all 0.2s ease !important;
+}
+
+.doc-upload-submit:hover {
+  background: #6A593E !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 6px 16px rgba(124, 106, 78, 0.25) !important;
+}

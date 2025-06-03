@@ -1,0 +1,170 @@
+.auth-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #f5f7fa 0%, #e4e9f2 100%);
+  padding: 20px;
+}
+
+.auth-card {
+  background: white;
+  border-radius: 24px;
+  padding: 40px;
+  width: 100%;
+  max-width: 480px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+}
+
+.auth-header {
+  margin-bottom: 32px;
+  width: 100%;
+}
+
+.brand-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+}
+
+.auth-logo-img {
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
+}
+
+.brand-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.company-name {
+  color: #2D3748;
+  font-size: 32px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.product-name {
+  color: #7C6A4E;
+  font-size: 18px;
+  font-weight: 500;
+  margin: 0;
+  opacity: 0.9;
+}
+
+.auth-title {
+  color: #2D3748;
+  font-size: 24px;
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-group label {
+  color: #4A5568;
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.form-group input {
+  height: 48px;
+  padding: 0 16px;
+  border: 2px solid #E2E8F0;
+  border-radius: 12px;
+  font-size: 15px;
+  transition: all 0.2s;
+}
+
+.form-group input:focus {
+  border-color: #C2A66C;
+  outline: none;
+}
+
+.auth-button {
+  height: 48px;
+  border: none;
+  border-radius: 12px;
+  background: linear-gradient(90deg, #7C6A4E, #C2A66C);
+  color: white;
+  font-weight: 600;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.auth-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(124, 106, 78, 0.2);
+}
+
+.auth-button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.auth-switch {
+  text-align: center;
+  margin-top: 24px;
+  color: #4A5568;
+  font-size: 14px;
+}
+
+.auth-switch span {
+  color: #C2A66C;
+  font-weight: 600;
+  cursor: pointer;
+  margin-left: 4px;
+}
+
+.otp-input {
+  letter-spacing: 8px;
+  font-size: 20px;
+  text-align: center;
+  font-weight: 600;
+}
+
+.error-message {
+  background: #FEE2E2;
+  color: #DC2626;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  margin-top: 16px;
+}
+
+.admin-login-button {
+  margin-top: 16px;
+  padding: 8px 24px;
+  border: 2px solid #7C6A4E;
+  background: transparent;
+  color: #7C6A4E;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  width: auto;
+  display: inline-block;
+}
+
+.admin-login-button:hover {
+  background: #7C6A4E;
+  color: white;
+}

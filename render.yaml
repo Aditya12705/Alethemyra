@@ -1,0 +1,32 @@
+services:
+  - type: web
+    name: clutch-backend
+    env: node
+    buildCommand: cd backend && npm install
+    startCommand: cd backend && node server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+
+  - type: web
+    name: clutch-frontend
+    env: node
+    buildCommand: |
+      cd frontend
+      npm install
+      echo "REACT_APP_API_URL during build: $REACT_APP_API_URL"
+      npm run build
+    startCommand: npx serve -s build
+    envVars:
+      - key: REACT_APP_API_URL
+        value: https://clutch-backend.onrender.com 

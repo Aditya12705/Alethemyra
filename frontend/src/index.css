@@ -1,0 +1,391 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+
+:root {
+  --deep-aegean-blue: #003B6F;
+  --marble-white: #FFFFFF;
+  --oxidised-bronze: #7C6A4E;
+  --imperial-purple: #4B1869;
+  --iron-gray: #2D3748;
+  --muted-gold: #C2A66C;
+  --background-color: #F4F4F2;
+  --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --input-border: #7C6A4E;
+  --success-green: #48BB78;
+  --error-red: #F56565;
+  --status-green: #48BB78;
+  --status-yellow: #C2A66C;
+  --status-red: #F56565;
+}
+
+body {
+  font-family: 'Poppins', sans-serif;
+  background-color: var(--background-color);
+  color: var(--iron-gray);
+  line-height: 1.5;
+}
+
+.container {
+  max-width: 56rem;
+  margin-left: auto;
+  margin-right: auto;
+  padding: 2rem;
+}
+
+.card {
+  background-color: var(--marble-white);
+  border-radius: 1rem;
+  box-shadow: var(--card-shadow);
+  padding: 2rem;
+  transition: all 0.3s ease;
+  border: none;
+  opacity: 1;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+.btn-primary {
+  background-color: var(--oxidised-bronze);
+  color: var(--marble-white);
+  font-weight: 600;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  transition: all 0.2s ease;
+  border: none;
+  cursor: pointer;
+  text-align: center;
+  display: inline-block;
+  font-size: 1rem;
+}
+
+.btn-primary:hover {
+  background-color: #5e4e36;
+  transform: translateY(-1px);
+}
+
+.btn-secondary {
+  background-color: var(--muted-gold);
+  color: var(--iron-gray);
+  font-weight: 600;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  transition: all 0.2s ease;
+  border: none;
+  cursor: pointer;
+  text-align: center;
+  display: inline-block;
+  font-size: 1rem;
+}
+
+.btn-secondary:hover {
+  background-color: #b89b4e;
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+.input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1.5px solid var(--input-border);
+  border-radius: 0.5rem;
+  outline: none;
+  transition: all 0.2s ease;
+  background-color: var(--marble-white);
+  color: var(--iron-gray);
+  font-size: 1rem;
+}
+
+.input:focus {
+  border-color: var(--deep-aegean-blue);
+  box-shadow: 0 0 0 3px rgba(0, 59, 111, 0.1);
+}
+
+.input:hover {
+  border-color: var(--deep-aegean-blue);
+}
+
+.label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--iron-gray);
+  margin-bottom: 0.5rem;
+  letter-spacing: 0.025em;
+}
+
+.table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  background-color: var(--marble-white);
+  border-radius: 0.5rem;
+  overflow: hidden;
+  box-shadow: var(--card-shadow);
+}
+
+.table th {
+  background-color: var(--oxidised-bronze);
+  color: var(--marble-white);
+  font-weight: 600;
+  padding: 1rem;
+  text-align: left;
+}
+
+.table td {
+  padding: 1rem;
+  border-bottom: 1px solid var(--input-border);
+}
+
+.table tr:last-child td {
+  border-bottom: none;
+}
+
+.table tr:hover td {
+  background-color: rgba(0, 59, 111, 0.02);
+}
+
+.progress-bar {
+  height: 0.5rem;
+  background-color: #EDF2F7;
+  border-radius: 9999px;
+  overflow: hidden;
+  margin: 1rem 0;
+}
+
+.progress-bar div {
+  height: 100%;
+  background-color: var(--deep-aegean-blue);
+  transition: width 0.5s ease;
+}
+
+/* Form styling */
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-header {
+  margin-bottom: 2rem;
+}
+
+.form-header h1 {
+  font-size: 1.875rem;
+  font-weight: 700;
+  color: var(--iron-gray);
+  margin-bottom: 0.5rem;
+}
+
+.form-header p {
+  color: #718096;
+  font-size: 1rem;
+}
+
+/* Step indicator */
+.step-indicator {
+  font-size: 0.875rem;
+  color: #718096;
+  margin-bottom: 1rem;
+}
+
+/* Required field indicator */
+.required::after {
+  content: "*";
+  color: var(--error-red);
+  margin-left: 0.25rem;
+}
+
+/* Error message styling */
+.error-message {
+  color: var(--error-red);
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
+}
+
+/* Success message styling */
+.success-message {
+  color: var(--success-green);
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
+}
+
+/* Document upload area */
+.upload-area {
+  border: 2px dashed var(--input-border);
+  border-radius: 0.5rem;
+  padding: 2rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.upload-area:hover {
+  border-color: var(--deep-aegean-blue);
+  background-color: rgba(0, 59, 111, 0.02);
+}
+
+/* --- Admin Dashboard Styles --- */
+.admin-dashboard-container {
+  min-height: 100vh;
+  background: var(--background-color);
+  display: flex;
+  font-family: 'Poppins', sans-serif;
+}
+
+.admin-sidebar {
+  width: 250px;
+  background: var(--deep-aegean-blue);
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  padding: 2rem 1rem;
+  box-shadow: 2px 0 8px rgba(0,0,0,0.04);
+}
+.admin-sidebar h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 2rem;
+  letter-spacing: 1px;
+}
+.admin-sidebar nav {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.admin-sidebar a, .admin-sidebar .nav-item {
+  color: #fff;
+  text-decoration: none;
+  font-size: 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  transition: background 0.2s;
+  cursor: pointer;
+}
+.admin-sidebar a.active, .admin-sidebar a:hover, .admin-sidebar .nav-item.active, .admin-sidebar .nav-item:hover {
+  background: var(--muted-gold);
+  color: var(--deep-aegean-blue);
+}
+
+.admin-main-content {
+  flex: 1;
+  padding: 3rem 2rem;
+  background: var(--background-color);
+  min-height: 100vh;
+}
+.admin-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2rem;
+}
+.admin-header h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--deep-aegean-blue);
+}
+.admin-header p {
+  color: #718096;
+  font-size: 1rem;
+}
+
+.admin-table-container {
+  background: #fff;
+  border-radius: 1rem;
+  box-shadow: var(--card-shadow);
+  padding: 2rem;
+  overflow-x: auto;
+}
+.admin-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 1rem;
+}
+.admin-table th, .admin-table td {
+  padding: 1rem 0.75rem;
+  text-align: left;
+}
+.admin-table th {
+  background: var(--deep-aegean-blue);
+  color: #fff;
+  font-weight: 600;
+  border-top-left-radius: 0.5rem;
+  border-top-right-radius: 0.5rem;
+}
+.admin-table tr {
+  border-bottom: 1px solid var(--input-border);
+  transition: background 0.2s;
+}
+.admin-table tr:last-child td {
+  border-bottom: none;
+}
+.admin-table tr:hover {
+  background: rgba(0,59,111,0.04);
+}
+.admin-table td {
+  vertical-align: middle;
+}
+
+.admin-status-badge {
+  display: inline-block;
+  padding: 0.35em 0.9em;
+  font-size: 0.95em;
+  font-weight: 600;
+  border-radius: 999px;
+  margin-right: 0.5em;
+}
+.admin-status-badge.approved {
+  background: var(--status-green);
+  color: #fff;
+}
+.admin-status-badge.pending {
+  background: var(--status-yellow);
+  color: #fff;
+}
+.admin-status-badge.rejected {
+  background: var(--status-red);
+  color: #fff;
+}
+
+.admin-action-select {
+  padding: 0.5em 1em;
+  border-radius: 0.5em;
+  border: 1px solid var(--input-border);
+  background: #f7fafc;
+  font-size: 1em;
+  color: var(--iron-gray);
+  outline: none;
+  transition: border 0.2s;
+}
+.admin-action-select:focus {
+  border-color: var(--deep-aegean-blue);
+}
+
+@media (max-width: 900px) {
+  .admin-dashboard-container {
+    flex-direction: column;
+  }
+  .admin-sidebar {
+    width: 100%;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+  }
+  .admin-main-content {
+    padding: 1rem;
+  }
+  .admin-table-container {
+    padding: 1rem;
+  }
+}
+
+@media (max-width: 600px) {
+  .admin-table th, .admin-table td {
+    padding: 0.5rem 0.25rem;
+    font-size: 0.95em;
+  }
+  .admin-header h1 {
+    font-size: 1.2rem;
+  }
+}
