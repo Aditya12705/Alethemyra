@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
 import { useProgress } from '../ProgressContext';
 import '../login.css';
-import config from '../../config';
+import config from '../config';
 
 const DevelopmentPlanning = () => {
   const { id } = useParams();
