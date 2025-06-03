@@ -191,13 +191,13 @@ const DocumentUpload = () => {
     if (khataCertificateDoc) formData.append('khataCertificateDoc', khataCertificateDoc);
     if (fiscalYearLandTaxInvoiceDoc) formData.append('fiscalYearLandTaxInvoiceDoc', fiscalYearLandTaxInvoiceDoc);
     if (bettermentCertificateDoc) formData.append('bettermentCertificateDoc', bettermentCertificateDoc);
-    if (ecDoc) formData.append('ecDoc', ecDoc);
     bwssbDocs.forEach((file, idx) => { if (file) formData.append(`bwssb${idx+1}Doc`, file); });
     kebDocs.forEach((file, idx) => { if (file) formData.append(`keb${idx+1}Doc`, file); });
+    if (ecDoc) formData.append('ecDoc', ecDoc);
     if (occcDoc) formData.append('occcDoc', occcDoc);
     if (reraDoc) formData.append('reraDoc', reraDoc);
     if (ownershipDoc) formData.append('ownershipDoc', ownershipDoc);
-    if (gpsDoc) formData.append('gpsPhotos', gpsDoc);
+    if (gpsDoc) formData.append('gpsDoc', gpsDoc);
     if (motherDeedDoc) formData.append('motherDeedDoc', motherDeedDoc);
     if (familyTreeDoc) formData.append('familyTreeDoc', familyTreeDoc);
     if (nocDoc) formData.append('nocDoc', nocDoc);
@@ -338,7 +338,7 @@ const DocumentUpload = () => {
                 <FileInput label="Mother Deed" name="motherDeedDoc" onChange={e => setMotherDeedDoc(e.target.files[0])} required />
               </div>
               <div style={{ flex: 1, minWidth: 380 }}>
-                <FileInput label="GPS-tagged Land Photos" name="gpsPhotos" onChange={e => setGpsDoc(e.target.files[0])} />
+                <FileInput label="GPS-tagged Land Photos" name="gpsDoc" onChange={e => setGpsDoc(e.target.files[0])} />
               </div>
               <div style={{ flex: 1, minWidth: 380 }}>
                 <FileInput label="Family Tree" name="familyTreeDoc" onChange={e => setFamilyTreeDoc(e.target.files[0])} required />
