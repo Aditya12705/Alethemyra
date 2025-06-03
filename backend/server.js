@@ -656,7 +656,7 @@ app.get('/api/users', async (req, res) => { // Made async
 app.get('/api/user/:id', async (req, res) => { // Made async
   const { id } = req.params;
   try {
-    const results = await db.query(`SELECT * FROM users WHERE id = $1`, [id]);
+    const results = await db.query(`SELECT *, crust_rating AS risk_level FROM users WHERE id = $1`, [id]);
     if (results.rows.length > 0) {
       res.json(results.rows[0]);
     } else {
@@ -745,7 +745,7 @@ app.post('/api/verify-otp', async (req, res) => { // Made async
 app.get('/api/user/:id/documents', async (req, res) => { // Made async
   const { id } = req.params;
   try {
-    const results = await db.query(`SELECT * FROM users WHERE id = $1`, [id]);
+    const results = await db.query(`SELECT *, crust_rating AS risk_level FROM users WHERE id = $1`, [id]);
     if (results.rows.length > 0) {
       const user = results.rows[0];
       const docs = [];
