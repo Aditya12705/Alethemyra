@@ -15,8 +15,41 @@ const AdminUserDetails = () => {
     const fetchUser = async () => {
       try {
         const response = await axios.get(`${config.API_URL}/api/user/${id}`);
-        setUser(response.data);
-        setStatus(response.data.status);
+        const userData = response.data;
+        // Transform snake_case keys to camelCase
+        const transformedUser = {
+          id: userData.id,
+          userUniqueId: userData.useruniqueid,
+          fullName: userData.fullname,
+          corporatePhone: userData.corporatephone,
+          createdAt: userData.createdat,
+          creditRequirement: userData.creditrequirement,
+          status: userData.status,
+          cinNumber: userData.cinnumber,
+          panCardPath: userData.pancardpath,
+          aadhaarCardPath: userData.aadhaarcardpath,
+          panNumber: userData.pannumber,
+          aadhaarNumber: userData.aadhaarnumber,
+          projectName: userData.projectname,
+          landLocation: userData.landlocation,
+          landSize: userData.landsize,
+          marketValue: userData.marketvalue,
+          crust_score: userData.crust_score,
+          crust_rating: userData.crust_rating,
+          risk_level: userData.risk_level,
+          tinNumber: userData.tinnumber,
+          gstNumber: userData.gstnumber,
+          companyName: userData.companyname,
+          plannedStartDate: userData.plannedstartdate,
+          ownershipPercentage: userData.ownershippercentage,
+          financialContribution: userData.financialcontribution,
+          partners: userData.partners,
+          hasRegulatoryApprovals: userData.hasregulatoryapprovals,
+          hasGpsPhotos: userData.hasgpsphotos,
+          expectedPermissionDate: userData.expectedpermissiondate,
+        };
+        setUser(transformedUser);
+        setStatus(transformedUser.status);
       } catch (err) {
         console.error('Error fetching user:', err);
       }
@@ -43,7 +76,8 @@ const AdminUserDetails = () => {
     doc.setFontSize(12);
 
     const addLine = (label, value) => {
-      doc.text(`${label}: ${value !== undefined && value !== null ? value : ''}`, 10, y);
+      const displayValue = (value === undefined || value === null || value === '') ? 'N/A' : value;
+      doc.text(`${label}: ${displayValue}`, 10, y);
       y += 8;
     };
 
@@ -184,7 +218,6 @@ const AdminUserDetails = () => {
               <p><strong>CIN Number:</strong> {user.cinNumber}</p>
             </div>
             <div>
-              <p><strong>Company Name:</strong> {user.companyName}</p>
               <p><strong>Planned Start Date:</strong> {user.plannedStartDate}</p>
               <p><strong>Ownership Percentage:</strong> {user.ownershipPercentage}%</p>
               <p><strong>Personal contribution to the development (INR CR):</strong> {user.financialContribution}</p>
