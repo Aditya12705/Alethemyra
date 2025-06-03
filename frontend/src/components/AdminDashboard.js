@@ -15,7 +15,12 @@ const CrustScoreSection = ({ modelInputs, handleModelInput, handleModelSubmit, m
     const fetchUsers = async () => {
       try {
         const response = await axios.get(`${config.API_URL}/api/users`);
-        setUsers(response.data);
+        const transformedUsers = response.data.map(user => ({
+          ...user,
+          userUniqueId: user.useruniqueid,
+          fullName: user.fullname,
+        }));
+        setUsers(transformedUsers);
       } catch (error) {
         console.error('Error fetching users:', error);
       }
