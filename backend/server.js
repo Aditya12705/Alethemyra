@@ -57,7 +57,6 @@ app.use(cors({
   credentials: true
 }));
 app.use(express.json());
-app.use(bodyParser.json());
 
 // Remove the express.static('/uploads', ...) line as Cloudinary will serve files
 // app.use('/uploads', express.static('uploads'));
@@ -356,12 +355,15 @@ app.post('/api/admin/login', async (req, res) => { // Made async
 // --- Submit KYC ---
 // Manual handling of multipart form data for KYC
 app.post('/api/kyc', (req, res, next) => {
-  // Skip multer middleware for this route
   req.skipMulter = true;
   next();
 }, (req, res) => {
   console.log('Received request for /api/kyc (Manual Multipart Handling)');
   
+  // Log request end/close for diagnostics
+  req.on('end', () => console.log('Request stream ended (kyc)'));
+  req.on('close', () => console.log('Request stream closed (kyc)'));
+
   // Create a promise to handle the entire request
   const handleRequest = new Promise((resolve, reject) => {
     try {
@@ -513,6 +515,10 @@ app.post('/api/kyc', (req, res, next) => {
         reject(err);
       });
 
+      bb.on('close', () => {
+        console.log('Busboy close event fired (kyc)');
+      });
+
       // Pipe the request stream to Busboy
       req.pipe(bb);
     } catch (error) {
@@ -596,11 +602,14 @@ app.post('/api/user/:id/crust-score', async (req, res) => { // Made async
 
 // --- Submit Application ---
 app.post('/api/submit/:id', (req, res, next) => {
-  // Skip multer middleware for this route
   req.skipMulter = true;
   next();
 }, (req, res) => {
   const { id } = req.params;
+
+  // Log request end/close for diagnostics
+  req.on('end', () => console.log('Request stream ended (submit)'));
+  req.on('close', () => console.log('Request stream closed (submit)'));
 
   // Wrap Busboy logic in a Promise to ensure response is sent only after finish
   const handleRequest = new Promise((resolve, reject) => {
@@ -680,6 +689,10 @@ app.post('/api/submit/:id', (req, res, next) => {
       bb.on('error', (err) => {
         console.error('Busboy error:', err);
         reject(err);
+      });
+
+      bb.on('close', () => {
+        console.log('Busboy close event fired (submit)');
       });
 
       // Pipe the request stream to Busboy
