@@ -1,3 +1,24 @@
+// Add uncaught exception and unhandled rejection handlers
+process.on('uncaughtException', (err) => {
+  console.error('UNCAUGHT EXCEPTION:', {
+    message: err.message,
+    stack: err.stack,
+    code: err.code
+  });
+  // It's often recommended to exit the process after logging uncaught exceptions
+  // process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('UNHANDLED REJECTION:', {
+    reason: reason,
+    promise: promise,
+    stack: reason instanceof Error ? reason.stack : 'N/A'
+  });
+  // Optionally exit the process
+  // process.exit(1);
+});
+
 const express = require('express');
 const mysql = require('mysql2');
 const multer = require('multer');
@@ -402,7 +423,7 @@ app.post('/api/kyc', uploadWithFilter.fields([
     res.json({ success: true, userId: userId });
 
   } catch (e) {
-    console.error('Detailed error in /api/kyc:', {
+    console.error('Detailed error in /api/kyc (in route handler):', {
       message: e.message,
       stack: e.stack,
       code: e.code
@@ -422,6 +443,19 @@ app.post('/api/kyc', uploadWithFilter.fields([
       message: 'Error submitting KYC',
       error: process.env.NODE_ENV === 'development' ? e.message : 'Internal server error'
     });
+  }
+});
+
+// Multer error handler
+app.use((err, req, res, next) => {
+  if (err instanceof multer.MulterError) {
+    console.error('Multer error:', err);
+    res.status(400).json({ success: false, message: `File upload error: ${err.message}` });
+  } else if (err) {
+    console.error('Other file upload related error:', err);
+    res.status(500).json({ success: false, message: `File upload failed: ${err.message}` });
+  } else {
+    next(); // Pass the error to the next error handler (if any)
   }
 });
 
@@ -935,6 +969,27 @@ app.get('/api/user/:id/status', async (req, res) => { // Made async
 
 // Removed the static file serving block for the frontend build
 // if (process.env.NODE_ENV === 'production') { ... }
+
+// Add a general error handler as a last resort
+app.use((err, req, res, next) => {
+  console.error('FINAL CATCH-ALL ERROR HANDLER:', {
+    message: err.message,
+    stack: err.stack,
+    status: err.status,
+    code: err.code
+  });
+
+  const statusCode = err.status || 500;
+  const message = statusCode === 500 && process.env.NODE_ENV !== 'development' 
+    ? 'Internal Server Error' 
+    : err.message;
+
+  res.status(statusCode).json({
+    success: false,
+    message: message,
+    error: process.env.NODE_ENV === 'development' ? err : {}
+  });
+});
 
 // Start the server
 app.listen(port, () => {
