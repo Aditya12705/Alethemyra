@@ -341,48 +341,86 @@ app.post('/api/kyc', uploadWithFilter.fields([
   { name: 'aadhaarCard', maxCount: 1 }
 ]), async (req, res) => { // Made async
   try {
+    console.log('Received request for /api/kyc');
     const { fullName, panNumber, aadhaarNumber, userId } = req.body;
-    const panCardUrl = req.files && req.files['panCard'] ? req.files['panCard'][0].path : null; // .path contains the Cloudinary URL
-    const aadhaarCardUrl = req.files && req.files['aadhaarCard'] ? req.files['aadhaarCard'][0].path : null;
+    console.log('Extracted body data:', { fullName, panNumber, aadhaarNumber, userId });
+
+    const panCardFile = req.files && req.files['panCard'] ? req.files['panCard'][0] : null;
+    const aadhaarCardFile = req.files && req.files['aadhaarCard'] ? req.files['aadhaarCard'][0] : null;
+    const panCardUrl = panCardFile ? panCardFile.path : null; // .path contains the Cloudinary URL
+    const aadhaarCardUrl = aadhaarCardFile ? aadhaarCardFile.path : null;
     const createdAt = getCurrentDate();
+    console.log('File URLs:', { panCardUrl, aadhaarCardUrl });
 
     if (!fullName || !panNumber || !aadhaarNumber || !panCardUrl || !aadhaarCardUrl || !userId) {
+      console.log('Validation failed: Missing required fields or files');
       // Consider deleting uploaded files from Cloudinary if validation fails here
-      if (panCardUrl) cloudinary.uploader.destroy(req.files['panCard'][0].public_id); // Use public_id for deletion
-      if (aadhaarCardUrl) cloudinary.uploader.destroy(req.files['aadhaarCard'][0].public_id);
+      if (panCardFile && panCardFile.public_id) {
+        console.log('Attempting to destroy panCard from Cloudinary:', panCardFile.public_id);
+        cloudinary.uploader.destroy(panCardFile.public_id);
+      }
+      if (aadhaarCardFile && aadhaarCardFile.public_id) {
+         console.log('Attempting to destroy aadhaarCard from Cloudinary:', aadhaarCardFile.public_id);
+        cloudinary.uploader.destroy(aadhaarCardFile.public_id);
+      }
       return res.status(400).json({ success: false, message: 'All fields, files, and userId are required.' });
     }
     
     // Database checks - adjust for pg
+    console.log('Checking user_credentials existence for userId:', userId);
     const userCredentialExists = await db.query(`SELECT * FROM user_credentials WHERE id = $1`, [userId]);
     if (userCredentialExists.rows.length === 0) {
+       console.log('user_credentials not found for userId:', userId);
        // Consider deleting uploaded files from Cloudinary
-      if (panCardUrl) cloudinary.uploader.destroy(req.files['panCard'][0].public_id);
-      if (aadhaarCardUrl) cloudinary.uploader.destroy(req.files['aadhaarCard'][0].public_id);
+      if (panCardFile && panCardFile.public_id) cloudinary.uploader.destroy(panCardFile.public_id);
+      if (aadhaarCardFile && aadhaarCardFile.public_id) cloudinary.uploader.destroy(aadhaarCardFile.public_id);
       return res.status(404).json({ success: false, message: 'User not found in user_credentials.' });
     }
+    console.log('user_credentials found.');
+
+    console.log('Checking users table existence for userId:', userId);
     const userExists = await db.query(`SELECT * FROM users WHERE id = $1`, [userId]);
      if (userExists.rows.length === 0) {
+       console.log('User not found in users table for userId:', userId);
       // Consider deleting uploaded files from Cloudinary
-      if (panCardUrl) cloudinary.uploader.destroy(req.files['panCard'][0].public_id);
-      if (aadhaarCardUrl) cloudinary.uploader.destroy(req.files['aadhaarCard'][0].public_id);
+      if (panCardFile && panCardFile.public_id) cloudinary.uploader.destroy(panCardFile.public_id);
+      if (aadhaarCardFile && aadhaarCardFile.public_id) cloudinary.uploader.destroy(aadhaarCardFile.public_id);
       return res.status(404).json({ success: false, message: 'User not found in users table.' });
     }
+    console.log('User found in users table.');
 
     // Update users table - adjust for pg parameterized query
+    console.log('Attempting to update users table for userId:', userId);
     await db.query(
       `UPDATE users SET fullName = $1, panNumber = $2, aadhaarNumber = $3, panCardPath = $4, aadhaarCardPath = $5, createdAt = $6 WHERE id = $7`,
       // Save the Cloudinary URLs (or public_id if you prefer) to the database
       [fullName, panNumber, aadhaarNumber, panCardUrl, aadhaarCardUrl, createdAt, userId]
     );
+    console.log('Successfully updated users table for userId:', userId);
+
     res.json({ success: true, userId: userId });
 
   } catch (e) {
-    console.error('Caught error in /api/kyc:', e);
+    console.error('Detailed error in /api/kyc:', {
+      message: e.message,
+      stack: e.stack,
+      code: e.code
+    });
      // Consider deleting uploaded files from Cloudinary in case of other errors
-    if (req.files && req.files['panCard'] && req.files['panCard'][0].public_id) cloudinary.uploader.destroy(req.files['panCard'][0].public_id);
-    if (req.files && req.files['aadhaarCard'] && req.files['aadhaarCard'][0].public_id) cloudinary.uploader.destroy(req.files['aadhaarCard'][0].public_id);
-    res.status(500).json({ success: false, message: 'Internal server error (uncaught).' });
+     // Note: Checking for existence and public_id before attempting destroy
+    if (req.files && req.files['panCard'] && req.files['panCard'][0] && req.files['panCard'][0].public_id) {
+       console.log('Attempting to destroy panCard from Cloudinary in catch block:', req.files['panCard'][0].public_id);
+       cloudinary.uploader.destroy(req.files['panCard'][0].public_id);
+    }
+    if (req.files && req.files['aadhaarCard'] && req.files['aadhaarCard'][0] && req.files['aadhaarCard'][0].public_id) {
+       console.log('Attempting to destroy aadhaarCard from Cloudinary in catch block:', req.files['aadhaarCard'][0].public_id);
+       cloudinary.uploader.destroy(req.files['aadhaarCard'][0].public_id);
+    }
+    res.status(500).json({ 
+      success: false, 
+      message: 'Error submitting KYC',
+      error: process.env.NODE_ENV === 'development' ? e.message : 'Internal server error'
+    });
   }
 });
 
