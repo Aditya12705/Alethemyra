@@ -51,15 +51,26 @@ const db = new Pool({
   connectionTimeoutMillis: 2000, // How long to wait for a connection
 });
 
+// Add error handler for the pool
+db.on('error', (err) => {
+  console.error('Unexpected error on idle client', err);
+  process.exit(-1);
+});
+
 // Function to test database connection
 const testConnection = async () => {
   let client;
   try {
+    console.log('Attempting to connect to PostgreSQL database...');
     client = await db.connect();
     console.log('Successfully connected to PostgreSQL database');
     return true;
   } catch (err) {
-    console.error('Error connecting to PostgreSQL:', err.message);
+    console.error('Error connecting to PostgreSQL:', {
+      message: err.message,
+      code: err.code,
+      stack: err.stack
+    });
     return false;
   } finally {
     if (client) client.release();
@@ -76,6 +87,7 @@ const initializeDatabase = async () => {
       process.exit(1);
     }
 
+    console.log('Starting database initialization...');
     // Create Tables
     await db.query(`
       CREATE TABLE IF NOT EXISTS user_credentials (
@@ -630,11 +642,35 @@ app.put('/api/regulatory/:id', async (req, res) => { // Made async
 // --- Get All Users (Admin Dashboard) ---
 app.get('/api/users', async (req, res) => { // Made async
   try {
-    const results = await db.query(`SELECT id, userUniqueId, fullName, corporatePhone, createdAt, creditRequirement, status, cinNumber, crust_score, crust_rating, risk_level FROM users`);
+    console.log('Attempting to fetch all users...');
+    const results = await db.query(`
+      SELECT 
+        id, 
+        userUniqueId, 
+        fullName, 
+        corporatePhone, 
+        createdAt, 
+        creditRequirement, 
+        status, 
+        cinNumber, 
+        crust_score, 
+        crust_rating, 
+        risk_level 
+      FROM users
+    `);
+    console.log(`Successfully fetched ${results.rows.length} users`);
     res.json(results.rows); // PostgreSQL results are in .rows
   } catch (err) {
-    console.error('Error getting all users:', err);
-    res.status(500).json({ success: false, message: err.message });
+    console.error('Detailed error in /api/users:', {
+      message: err.message,
+      stack: err.stack,
+      code: err.code
+    });
+    res.status(500).json({ 
+      success: false, 
+      message: 'Error fetching users',
+      error: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error'
+    });
   }
 });
 
