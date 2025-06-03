@@ -7,7 +7,28 @@ const fs = require('fs');
 const axios = require('axios');
 const bodyParser = require('body-parser');
 const crypto = require('crypto');
-const { calculateCrustScore, getCrustRatingAndRiskLevel } = require('./crustScore');
+const { calculateCrustScore } = require('./crustScore');
+
+function getRiskLevelFromCrustScore(crustScore) {
+  let risk = "N/A"; // Default
+  if (crustScore === null || crustScore === undefined) {
+    return risk;
+  }
+  if (crustScore >= 9.0) {
+    risk = "Very Low";
+  } else if (crustScore >= 8.0) {
+    risk = "Low";
+  } else if (crustScore >= 7.0) {
+    risk = "Moderate";
+  } else if (crustScore >= 6.0) {
+    risk = "Elevated";
+  } else if (crustScore >= 5.0) {
+    risk = "High";
+  } else {
+    risk = "Very High";
+  }
+  return risk;
+}
 const cloudinary = require('cloudinary').v2;
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const { Pool } = require('pg'); // Import PostgreSQL Pool
@@ -365,8 +386,8 @@ app.post('/api/user/:id/crust-score', async (req, res) => { // Made async
     // Save the calculated score to the database - adjust for pg parameterized query
     const { compositeScore, rating, risk } = result;
     await db.query(
-      `UPDATE users SET crust_score = $1, crust_rating = $2, risk_level = $3 WHERE id = $4`,
-      [compositeScore, rating, risk, id]
+      `UPDATE users SET crust_score = $1, crust_rating = $2 WHERE id = $3`,
+      [compositeScore, rating, id]
     );
 
     res.json({
@@ -646,8 +667,12 @@ app.put('/api/regulatory/:id', async (req, res) => { // Made async
 // --- Get All Users (Admin Dashboard) ---
 app.get('/api/users', async (req, res) => { // Made async
   try {
-    const results = await db.query(`SELECT id, userUniqueId, fullName, corporatePhone, createdAt, creditRequirement, status, cinNumber, panCardPath, aadhaarCardPath, crust_score, crust_rating AS risk_level FROM users`);
-    res.json(results.rows); // PostgreSQL results are in .rows
+    const results = await db.query(`SELECT id, userUniqueId, fullName, corporatePhone, createdAt, creditRequirement, status, cinNumber, panCardPath, aadhaarCardPath, crust_score, crust_rating FROM users`);
+    const usersWithRiskLevel = results.rows.map(user => ({
+      ...user,
+      risk_level: getRiskLevelFromCrustScore(user.crust_score)
+    }));
+    res.json(usersWithRiskLevel);
   } catch (err) {
     console.error('Error getting all users:', err);
     res.status(500).json({ success: false, message: err.message });
@@ -658,9 +683,11 @@ app.get('/api/users', async (req, res) => { // Made async
 app.get('/api/user/:id', async (req, res) => { // Made async
   const { id } = req.params;
   try {
-    const results = await db.query(`SELECT *, crust_rating AS risk_level FROM users WHERE id = $1`, [id]);
+    const results = await db.query(`SELECT * FROM users WHERE id = $1`, [id]);
     if (results.rows.length > 0) {
-      res.json(results.rows[0]);
+      const user = results.rows[0];
+      user.risk_level = getRiskLevelFromCrustScore(user.crust_score);
+      res.json(user);
     } else {
       res.status(404).json({ success: false, message: 'User not found' });
     }
