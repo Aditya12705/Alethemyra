@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import '../../login.css';
+import '../login.css';
 
 const Login = () => {
   const [isUser, setIsUser] = useState(true); // Toggle between User and Admin
