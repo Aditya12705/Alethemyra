@@ -213,9 +213,7 @@ const DocumentUpload = () => {
     if (landDoc) formData.append('landDoc', landDoc);
     if (ownershipPercentage < 100 && partners && partners.length > 0 && jvDoc) formData.append('jvDoc', jvDoc);
     try {
-      await axios.post(`http://localhost:5000/api/submit/${userId}`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
+      await axios.post(`http://localhost:5000/api/submit/${userId}`, formData);
       window.location.href = `/user-dashboard/${userId}`;
     } catch (err) {
       setError('Error submitting application. Please try again.');
