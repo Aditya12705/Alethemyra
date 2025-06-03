@@ -56,6 +56,7 @@ const KYC = () => {
     formData.append('panNumber', panNumber);
     formData.append('aadhaarNumber', aadhaarNumber);
     formData.append('userId', userId);
+    console.log('Submitting KYC with files:', { panCardFile, aadhaarCardFile });
     formData.append('panCard', panCardFile);
     formData.append('aadhaarCard', aadhaarCardFile);
 
@@ -244,6 +245,7 @@ const KYC = () => {
                       Upload
                       <input
                         type="file"
+                        name="panCard"
                         style={{display:'none'}}
                         accept="image/*,application/pdf"
                         onChange={(e) => handleFileChange(e, setPanCardFile, setPanCardStatus)}
@@ -259,6 +261,7 @@ const KYC = () => {
                       Upload
                       <input
                         type="file"
+                        name="aadhaarCard"
                         style={{display:'none'}}
                         accept="image/*,application/pdf"
                         onChange={(e) => handleFileChange(e, setAadhaarCardFile, setAadhaarCardStatus)}
