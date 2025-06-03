@@ -228,9 +228,9 @@ const AdminUserDetails = () => {
                 <>
                   <p><strong>Crust Score:</strong> {Number(user.crust_score).toFixed(2)}</p>
                   <p><strong>Rating:</strong> {user.crust_rating}</p>
-                  <p><strong>Risk Level:</strong> {user.risk_level || 'N/A'}</p>
                 </>
               )}
+              <p><strong>Risk Level:</strong> {user.risk_level || 'N/A'}</p>
               <p><strong>Status:</strong> {user.status}</p>
               <p><strong>Application Date:</strong> {user.createdAt}</p>
               {/* Partners */}
