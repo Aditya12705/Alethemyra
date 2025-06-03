@@ -358,7 +358,14 @@ app.post('/api/admin/login', async (req, res) => { // Made async
 
 // --- Submit KYC ---
 // Use uploadWithFilter for file uploads if you want the file filter applied
-app.post('/api/kyc', uploadWithFilter.any(), async (req, res) => { // Made async
+app.post('/api/kyc', uploadWithFilter.fields([
+  { name: 'panCard', maxCount: 1 },
+  { name: 'aadhaarCard', maxCount: 1 },
+  { name: 'fullName', maxCount: 1 },
+  { name: 'panNumber', maxCount: 1 },
+  { name: 'aadhaarNumber', maxCount: 1 },
+  { name: 'userId', maxCount: 1 }
+]), async (req, res) => { // Made async
   try {
     console.log('Received request for /api/kyc');
     const { fullName, panNumber, aadhaarNumber, userId } = req.body;
