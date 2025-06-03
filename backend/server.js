@@ -369,6 +369,7 @@ app.post('/api/kyc', (req, res, next) => {
 
     const fields = {};
     const files = {};
+    let isFinished = false;
 
     bb.on('file', (fieldname, file, filename, encoding, mimetype) => {
       console.log('File ', fieldname, filename, encoding, mimetype);
@@ -384,6 +385,9 @@ app.post('/api/kyc', (req, res, next) => {
     });
 
     bb.on('finish', async () => {
+      if (isFinished) return; // Prevent multiple finish events
+      isFinished = true;
+      
       console.log('Busboy finished parsing form.');
       console.log('Parsed fields:', fields);
       console.log('Parsed files:', Object.keys(files));
@@ -496,6 +500,13 @@ app.post('/api/kyc', (req, res, next) => {
       res.json({ success: true, userId: userId });
     });
 
+    bb.on('error', (err) => {
+      console.error('Busboy error:', err);
+      if (!res.headersSent) {
+        res.status(500).json({ success: false, message: 'Error processing form data' });
+      }
+    });
+
     // Pipe the request stream to Busboy
     req.pipe(bb);
 
@@ -505,11 +516,13 @@ app.post('/api/kyc', (req, res, next) => {
       stack: e.stack,
       code: e.code
     });
-     res.status(500).json({ 
-      success: false, 
-      message: 'Error submitting KYC',
-      error: process.env.NODE_ENV === 'development' ? e.message : 'Internal server error'
-    });
+    if (!res.headersSent) {
+      res.status(500).json({ 
+        success: false, 
+        message: 'Error submitting KYC',
+        error: process.env.NODE_ENV === 'development' ? e.message : 'Internal server error'
+      });
+    }
   }
 });
 
@@ -565,7 +578,6 @@ app.post('/api/user/:id/crust-score', async (req, res) => { // Made async
 });
 
 // --- Submit Application ---
-// Use uploadWithFilter for file uploads
 app.post('/api/submit/:id', (req, res, next) => {
   // Skip multer middleware for this route
   req.skipMulter = true;
@@ -578,6 +590,7 @@ app.post('/api/submit/:id', (req, res, next) => {
 
     const fields = {};
     const files = {};
+    let isFinished = false;
 
     bb.on('file', (fieldname, file, filename, encoding, mimetype) => {
       console.log('File ', fieldname, filename, encoding, mimetype);
@@ -592,6 +605,9 @@ app.post('/api/submit/:id', (req, res, next) => {
     });
 
     bb.on('finish', async () => {
+      if (isFinished) return; // Prevent multiple finish events
+      isFinished = true;
+
       console.log('Busboy finished parsing form.');
       console.log('Parsed fields:', fields);
       console.log('Parsed files:', Object.keys(files));
@@ -639,12 +655,21 @@ app.post('/api/submit/:id', (req, res, next) => {
       }
     });
 
+    bb.on('error', (err) => {
+      console.error('Busboy error:', err);
+      if (!res.headersSent) {
+        res.status(500).json({ success: false, message: 'Error processing form data' });
+      }
+    });
+
     // Pipe the request stream to Busboy
     req.pipe(bb);
 
   } catch (err) {
     console.error('Error in /api/submit/:id:', err);
-    res.status(500).json({ success: false, message: err.message });
+    if (!res.headersSent) {
+      res.status(500).json({ success: false, message: err.message });
+    }
   }
 });
 
@@ -666,6 +691,7 @@ app.post('/api/user/:id/optional-documents', (req, res, next) => {
 
     const fields = {};
     const files = {};
+    let isFinished = false;
 
     bb.on('file', (fieldname, file, filename, encoding, mimetype) => {
       console.log('File ', fieldname, filename, encoding, mimetype);
@@ -680,6 +706,9 @@ app.post('/api/user/:id/optional-documents', (req, res, next) => {
     });
 
     bb.on('finish', async () => {
+      if (isFinished) return; // Prevent multiple finish events
+      isFinished = true;
+
       console.log('Busboy finished parsing form.');
       console.log('Parsed fields:', fields);
       console.log('Parsed files:', Object.keys(files));
@@ -727,12 +756,21 @@ app.post('/api/user/:id/optional-documents', (req, res, next) => {
       }
     });
 
+    bb.on('error', (err) => {
+      console.error('Busboy error:', err);
+      if (!res.headersSent) {
+        res.status(500).json({ success: false, message: 'Error processing form data' });
+      }
+    });
+
     // Pipe the request stream to Busboy
     req.pipe(bb);
 
   } catch (err) {
     console.error('Error in /api/user/:id/optional-documents:', err);
-    res.status(500).json({ success: false, message: err.message });
+    if (!res.headersSent) {
+      res.status(500).json({ success: false, message: err.message });
+    }
   }
 });
 
