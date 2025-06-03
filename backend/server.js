@@ -7,7 +7,7 @@ const fs = require('fs');
 const axios = require('axios');
 const bodyParser = require('body-parser');
 const crypto = require('crypto');
-const { calculateCrustScore } = require('./crustScore');
+const { calculateCrustScore, getCrustRatingAndRiskLevel } = require('./crustScore');
 const cloudinary = require('cloudinary').v2;
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const { Pool } = require('pg'); // Import PostgreSQL Pool
@@ -364,8 +364,10 @@ app.post('/api/user/:id/crust-score', async (req, res) => { // Made async
 
     // Save the calculated score to the database - adjust for pg parameterized query
     const { compositeScore, rating, risk } = result;
-    const updateQuery = `UPDATE users SET crust_score = $1, crust_rating = $2 WHERE id = $3`;
-    await db.query(updateQuery, [compositeScore, rating, id]);
+    await db.query(
+      `UPDATE users SET crust_score = $1, crust_rating = $2, risk_level = $3 WHERE id = $4`,
+      [compositeScore, rating, risk, id]
+    );
 
     res.json({
       success: true,
@@ -644,7 +646,7 @@ app.put('/api/regulatory/:id', async (req, res) => { // Made async
 // --- Get All Users (Admin Dashboard) ---
 app.get('/api/users', async (req, res) => { // Made async
   try {
-    const results = await db.query(`SELECT id, userUniqueId, fullName, corporatePhone, createdAt, creditRequirement, status, cinNumber, panCardPath, aadhaarCardPath, crust_score, crust_rating AS risk_level FROM users`);
+    const results = await db.query(`SELECT id, userUniqueId, fullName, corporatePhone, createdAt, creditRequirement, status, cinNumber, panCardPath, aadhaarCardPath, crust_score, crust_rating, risk_level FROM users`);
     res.json(results.rows); // PostgreSQL results are in .rows
   } catch (err) {
     console.error('Error getting all users:', err);
