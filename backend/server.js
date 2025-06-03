@@ -357,7 +357,11 @@ app.post('/api/admin/login', async (req, res) => { // Made async
 
 // --- Submit KYC ---
 // Manual handling of multipart form data for KYC
-app.post('/api/kyc', (req, res, next) => { // Remove async, add next
+app.post('/api/kyc', (req, res, next) => {
+  // Skip multer middleware for this route
+  req.skipMulter = true;
+  next();
+}, (req, res) => {
   console.log('Received request for /api/kyc (Manual Multipart Handling)');
   try {
     const busboy = require('busboy');
@@ -509,6 +513,15 @@ app.post('/api/kyc', (req, res, next) => { // Remove async, add next
   }
 });
 
+// Add a middleware to skip multer for specific routes
+app.use((req, res, next) => {
+  if (req.skipMulter) {
+    next();
+  } else {
+    uploadWithFilter.any()(req, res, next);
+  }
+});
+
 // Multer error handler
 app.use((err, req, res, next) => {
   if (err instanceof multer.MulterError) {
@@ -553,81 +566,84 @@ app.post('/api/user/:id/crust-score', async (req, res) => { // Made async
 
 // --- Submit Application ---
 // Use uploadWithFilter for file uploads
-app.post('/api/submit/:id', uploadWithFilter.fields([
-  { name: 'bbmpDoc', maxCount: 1 },
-  { name: 'planApprovalDoc', maxCount: 1 },
-  { name: 'khataCertificateDoc', maxCount: 1 },
-  { name: 'fiscalYearLandTaxInvoiceDoc', maxCount: 1 },
-  { name: 'bettermentCertificateDoc', maxCount: 1 },
-  { name: 'bwssb1Doc', maxCount: 1 },
-  { name: 'bwssb2Doc', maxCount: 1 },
-  { name: 'bwssb3Doc', maxCount: 1 },
-  { name: 'keb1Doc', maxCount: 1 },
-  { name: 'keb2Doc', maxCount: 1 },
-  { name: 'keb3Doc', maxCount: 1 },
-  { name: 'ecDoc', maxCount: 1 },
-  { name: 'occcDoc', maxCount: 1 },
-  { name: 'reraDoc', maxCount: 1 },
-  { name: 'ownershipDoc', maxCount: 1 },
-  { name: 'gpsDoc', maxCount: 1 },
-  { name: 'motherDeedDoc', maxCount: 1 },
-  { name: 'familyTreeDoc', maxCount: 1 },
-  { name: 'nocDoc', maxCount: 1 },
-  { name: 'legalDisputeDoc', maxCount: 1 },
-  { name: 'jvDoc', maxCount: 1 }
-]), async (req, res) => { // Made async
+app.post('/api/submit/:id', (req, res, next) => {
+  // Skip multer middleware for this route
+  req.skipMulter = true;
+  next();
+}, async (req, res) => {
   const { id } = req.params;
   try {
-    const updates = [];
-    const values = [];
-    let paramIndex = 1; // Start index for parameterized query
+    const busboy = require('busboy');
+    const bb = busboy({ headers: req.headers });
 
-    const addUpdate = (fieldName, files) => {
-        if (files && files[fieldName]) {
-             updates.push(`${fieldName}Path = $${paramIndex++}`);
-             values.push(files[fieldName][0].path); // Cloudinary URL
-             // Add logic here to get and potentially delete old Cloudinary file if updating
-             // This requires fetching the old value from the DB first.
+    const fields = {};
+    const files = {};
+
+    bb.on('file', (fieldname, file, filename, encoding, mimetype) => {
+      console.log('File ', fieldname, filename, encoding, mimetype);
+      // Buffer the file for Cloudinary upload
+      const fileBuffer = [];
+      file.on('data', (data) => { fileBuffer.push(data); });
+      file.on('end', () => { files[fieldname] = { buffer: Buffer.concat(fileBuffer), mimetype, originalname: filename }; });
+    });
+
+    bb.on('field', (fieldname, val) => {
+      fields[fieldname] = val;
+    });
+
+    bb.on('finish', async () => {
+      console.log('Busboy finished parsing form.');
+      console.log('Parsed fields:', fields);
+      console.log('Parsed files:', Object.keys(files));
+
+      const updates = [];
+      const values = [];
+      let paramIndex = 1;
+
+      // Upload files to Cloudinary and prepare database updates
+      for (const [fieldname, file] of Object.entries(files)) {
+        try {
+          const uploadPromise = new Promise((resolve, reject) => {
+            cloudinary.uploader.upload_stream({
+              folder: 'clutch_app_uploads',
+              resource_type: 'auto',
+              public_id: `${fieldname}_${id}_${Date.now()}`
+            }, (error, result) => {
+              if (error) {
+                console.error(`Cloudinary upload error (${fieldname}):`, error);
+                reject(error);
+                return;
+              }
+              resolve(result);
+            }).end(file.buffer);
+          });
+          
+          const result = await uploadPromise;
+          updates.push(`${fieldname}Path = $${paramIndex++}`);
+          values.push(result.secure_url);
+        } catch (uploadErr) {
+          console.error(`Error uploading ${fieldname}:`, uploadErr);
+          // Continue with other files
         }
-    };
+      }
 
-    // Use the helper to add updates for each possible file field
-    addUpdate('bbmpDoc', req.files);
-    addUpdate('planApprovalDoc', req.files);
-    addUpdate('khataCertificateDoc', req.files);
-    addUpdate('fiscalYearLandTaxInvoiceDoc', req.files);
-    addUpdate('bettermentCertificateDoc', req.files);
-    addUpdate('bwssb1Doc', req.files);
-    addUpdate('bwssb2Doc', req.files);
-    addUpdate('bwssb3Doc', req.files);
-    addUpdate('keb1Doc', req.files);
-    addUpdate('keb2Doc', req.files);
-    addUpdate('keb3Doc', req.files);
-    addUpdate('ecDoc', req.files);
-    addUpdate('occcDoc', req.files);
-    addUpdate('reraDoc', req.files);
-    addUpdate('ownershipDoc', req.files);
-    addUpdate('gpsDoc', req.files);
-    addUpdate('motherDeedDoc', req.files);
-    addUpdate('familyTreeDoc', req.files);
-    addUpdate('nocDoc', req.files);
-    addUpdate('legalDisputeDoc', req.files);
-    addUpdate('jvDoc', req.files);
+      if (updates.length > 0) {
+        // Add the user ID as the last parameter
+        values.push(id);
+        
+        // Execute the update query
+        await db.query(`UPDATE users SET ${updates.join(', ')} WHERE id = $${paramIndex}`, values);
+        res.json({ success: true, message: 'Application submitted successfully' });
+      } else {
+        res.json({ success: true, message: 'No files uploaded or no updates.' });
+      }
+    });
 
-    if (updates.length > 0) {
-      // Add the user ID as the last parameter
-      values.push(id);
-      
-      // Execute the update query - adjust for pg parameterized query
-      await db.query(`UPDATE users SET ${updates.join(', ')} WHERE id = $${paramIndex}`, values);
+    // Pipe the request stream to Busboy
+    req.pipe(bb);
 
-      res.json({ success: true, message: 'Application submitted successfully' });
-    } else {
-      res.json({ success: true, message: 'No files uploaded or no updates.' });
-    }
   } catch (err) {
     console.error('Error in /api/submit/:id:', err);
-     // Consider deleting uploaded files from Cloudinary if DB update fails
     res.status(500).json({ success: false, message: err.message });
   }
 });
@@ -638,72 +654,84 @@ app.post('/api/submit/:id', uploadWithFilter.fields([
 
 
 // --- Endpoint for uploading optional documents after initial submission ---
-// Use uploadWithFilter for file uploads
-app.post('/api/user/:id/optional-documents', uploadWithFilter.fields([
-  { name: 'bbmpDoc', maxCount: 1 },
-  { name: 'planApprovalDoc', maxCount: 1 },
-  { name: 'khataCertificateDoc', maxCount: 1 },
-  { name: 'fiscalYearLandTaxInvoiceDoc', maxCount: 1 },
-  { name: 'bettermentCertificateDoc', maxCount: 1 },
-  { name: 'ecDoc', maxCount: 1 },
-  { name: 'bwssb1Doc', maxCount: 1 },
-  { name: 'bwssb2Doc', maxCount: 1 },
-  { name: 'bwssb3Doc', maxCount: 1 },
-  { name: 'keb1Doc', maxCount: 1 },
-  { name: 'keb2Doc', maxCount: 1 },
-  { name: 'keb3Doc', maxCount: 1 },
-  { name: 'legalDisputeDoc', maxCount: 1 },
-  { name: 'jvDoc', maxCount: 1 } // JV is optional if ownership < 100
-]), async (req, res) => { // Made async
+app.post('/api/user/:id/optional-documents', (req, res, next) => {
+  // Skip multer middleware for this route
+  req.skipMulter = true;
+  next();
+}, async (req, res) => {
   const { id } = req.params;
   try {
-    const updates = [];
-    const values = [];
-    let paramIndex = 1; // Start index for parameterized query
+    const busboy = require('busboy');
+    const bb = busboy({ headers: req.headers });
 
-     const addUpdate = (fieldName, files) => {
-        if (files && files[fieldName]) {
-             updates.push(`${fieldName}Path = $${paramIndex++}`);
-             values.push(files[fieldName][0].path); // Cloudinary URL
-             // Add logic here to get and potentially delete old Cloudinary file if updating
-             // This requires fetching the old value from the DB first.
+    const fields = {};
+    const files = {};
+
+    bb.on('file', (fieldname, file, filename, encoding, mimetype) => {
+      console.log('File ', fieldname, filename, encoding, mimetype);
+      // Buffer the file for Cloudinary upload
+      const fileBuffer = [];
+      file.on('data', (data) => { fileBuffer.push(data); });
+      file.on('end', () => { files[fieldname] = { buffer: Buffer.concat(fileBuffer), mimetype, originalname: filename }; });
+    });
+
+    bb.on('field', (fieldname, val) => {
+      fields[fieldname] = val;
+    });
+
+    bb.on('finish', async () => {
+      console.log('Busboy finished parsing form.');
+      console.log('Parsed fields:', fields);
+      console.log('Parsed files:', Object.keys(files));
+
+      const updates = [];
+      const values = [];
+      let paramIndex = 1;
+
+      // Upload files to Cloudinary and prepare database updates
+      for (const [fieldname, file] of Object.entries(files)) {
+        try {
+          const uploadPromise = new Promise((resolve, reject) => {
+            cloudinary.uploader.upload_stream({
+              folder: 'clutch_app_uploads',
+              resource_type: 'auto',
+              public_id: `${fieldname}_${id}_${Date.now()}`
+            }, (error, result) => {
+              if (error) {
+                console.error(`Cloudinary upload error (${fieldname}):`, error);
+                reject(error);
+                return;
+              }
+              resolve(result);
+            }).end(file.buffer);
+          });
+          
+          const result = await uploadPromise;
+          updates.push(`${fieldname}Path = $${paramIndex++}`);
+          values.push(result.secure_url);
+        } catch (uploadErr) {
+          console.error(`Error uploading ${fieldname}:`, uploadErr);
+          // Continue with other files
         }
-    };
+      }
 
-    addUpdate('bbmpDoc', req.files);
-    addUpdate('planApprovalDoc', req.files);
-    addUpdate('khataCertificateDoc', req.files);
-    addUpdate('fiscalYearLandTaxInvoiceDoc', req.files);
-    addUpdate('bettermentCertificateDoc', req.files);
-    addUpdate('ecDoc', req.files);
+      if (updates.length > 0) {
+        // Add the user ID as the last parameter
+        values.push(id);
+        
+        // Execute the update query
+        await db.query(`UPDATE users SET ${updates.join(', ')} WHERE id = $${paramIndex}`, values);
+        res.json({ success: true, message: 'Optional documents uploaded successfully' });
+      } else {
+        res.status(400).json({ success: false, message: 'No files uploaded.' });
+      }
+    });
 
-    // Handle multiple BWSSB documents
-    for (let i = 1; i <= 3; i++) {
-      addUpdate(`bwssb${i}Doc`, req.files);
-    }
+    // Pipe the request stream to Busboy
+    req.pipe(bb);
 
-    // Handle multiple KEB documents
-    for (let i = 1; i <= 3; i++) {
-       addUpdate(`keb${i}Doc`, req.files);
-    }
-
-    addUpdate('legalDisputeDoc', req.files);
-    addUpdate('jvDoc', req.files);
-
-    if (updates.length > 0) {
-      // Add the user ID as the last parameter
-      values.push(id);
-      
-      // Execute the update query - adjust for pg parameterized query
-      await db.query(`UPDATE users SET ${updates.join(', ')} WHERE id = $${paramIndex}`, values);
-
-      res.json({ success: true, message: 'Optional documents uploaded successfully' });
-    } else {
-      res.status(400).json({ success: false, message: 'No files uploaded.' });
-    }
   } catch (err) {
     console.error('Error in /api/user/:id/optional-documents:', err);
-     // Consider deleting uploaded files from Cloudinary if DB update fails
     res.status(500).json({ success: false, message: err.message });
   }
 });
