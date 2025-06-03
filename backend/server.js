@@ -360,7 +360,11 @@ app.post('/api/admin/login', async (req, res) => { // Made async
 // Use uploadWithFilter for file uploads if you want the file filter applied
 app.post('/api/kyc', uploadWithFilter.fields([
   { name: 'panCard', maxCount: 1 },
-  { name: 'aadhaarCard', maxCount: 1 }
+  { name: 'aadhaarCard', maxCount: 1 },
+  { name: 'fullName', maxCount: 1 },
+  { name: 'panNumber', maxCount: 1 },
+  { name: 'aadhaarNumber', maxCount: 1 },
+  { name: 'userId', maxCount: 1 }
 ]), async (req, res) => { // Made async
   try {
     console.log('Received request for /api/kyc');
@@ -506,7 +510,6 @@ app.post('/api/submit/:id', uploadWithFilter.fields([
   { name: 'occcDoc', maxCount: 1 },
   { name: 'reraDoc', maxCount: 1 },
   { name: 'ownershipDoc', maxCount: 1 },
-  { name: 'regulatoryApprovals', maxCount: 1 },
   { name: 'gpsPhotos', maxCount: 1 },
   { name: 'motherDeedDoc', maxCount: 1 },
   { name: 'familyTreeDoc', maxCount: 1 },
@@ -545,7 +548,6 @@ app.post('/api/submit/:id', uploadWithFilter.fields([
     addUpdate('occcDoc', req.files);
     addUpdate('reraDoc', req.files);
     addUpdate('ownershipDoc', req.files);
-    addUpdate('regulatoryApprovals', req.files);
     addUpdate('gpsPhotos', req.files);
     addUpdate('motherDeedDoc', req.files);
     addUpdate('familyTreeDoc', req.files);
