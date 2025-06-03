@@ -440,7 +440,7 @@ app.post('/api/submit/:id', uploadWithFilter.fields([
     addUpdate('ecDoc', req.files);
     addUpdate('occcDoc', req.files);
     addUpdate('reraDoc', req.files);
-    addUpdate('ownershipDocuments', req.files);
+    addUpdate('ownershipDoc', req.files);
     addUpdate('regulatoryApprovals', req.files);
     addUpdate('gpsPhotos', req.files);
     addUpdate('landDoc', req.files);
