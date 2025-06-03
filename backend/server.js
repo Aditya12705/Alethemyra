@@ -632,7 +632,7 @@ app.put('/api/regulatory/:id', async (req, res) => { // Made async
 // --- Get All Users (Admin Dashboard) ---
 app.get('/api/users', async (req, res) => { // Made async
   try {
-    const results = await db.query(`SELECT id, userUniqueId, fullName, corporatePhone, createdAt, creditRequirement, status, cinNumber FROM users`);
+    const results = await db.query(`SELECT id, userUniqueId, fullName, corporatePhone, createdAt, creditRequirement, status, cinNumber, crust_score, crust_rating FROM users`);
     res.json(results.rows); // PostgreSQL results are in .rows
   } catch (err) {
     console.error('Error getting all users:', err);
