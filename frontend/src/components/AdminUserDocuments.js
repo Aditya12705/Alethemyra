@@ -13,7 +13,14 @@ const AdminUserDocuments = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    axios.get(`${config.API_URL}/api/users`).then(res => setUsers(res.data));
+    axios.get(`${config.API_URL}/api/users`).then(res => {
+      const transformedUsers = res.data.map(user => ({
+        ...user,
+        userUniqueId: user.useruniqueid,
+        fullName: user.fullname,
+      }));
+      setUsers(transformedUsers);
+    });
   }, []);
 
   useEffect(() => {
