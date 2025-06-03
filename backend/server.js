@@ -357,7 +357,7 @@ app.post('/api/admin/login', async (req, res) => { // Made async
 
 // --- Submit KYC ---
 // Manual handling of multipart form data for KYC
-app.post('/api/kyc', async (req, res) => { // Made async
+app.post('/api/kyc', (req, res, next) => { // Remove async, add next
   console.log('Received request for /api/kyc (Manual Multipart Handling)');
   try {
     const busboy = require('busboy');
