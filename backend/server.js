@@ -441,7 +441,18 @@ app.post('/api/submit/:id', uploadWithFilter.fields([
     addUpdate('occcDoc', req.files);
     addUpdate('reraDoc', req.files);
     addUpdate('ownershipDoc', req.files);
-    addUpdate('regulatoryApprovals', req.files);
+
+    // Handle boolean fields from req.body
+    if (req.body.hasRegulatoryApprovals !== undefined) {
+      updates.push(`hasRegulatoryApprovals = $${paramIndex++}`);
+      values.push(req.body.hasRegulatoryApprovals === 'true'); // Convert string to boolean
+    }
+    if (req.body.hasGpsPhotos !== undefined) {
+      updates.push(`hasGpsPhotos = $${paramIndex++}`);
+      values.push(req.body.hasGpsPhotos === 'true'); // Convert string to boolean
+    }
+
+    addUpdate('regulatoryDoc', req.files);
     addUpdate('gpsDoc', req.files);
     addUpdate('landDoc', req.files);
     addUpdate('motherDeedDoc', req.files);
