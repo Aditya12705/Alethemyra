@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react';
-import { useParams, useLocation, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import axios from 'axios';
 import { useProgress } from '../ProgressContext';
 import '../login.css';
-import styles from './DocumentUpload.module.css';
 import config from '../config';
 
 const FileInput = ({ label, name, onChange, optional = false }) => {
@@ -127,10 +126,8 @@ const FileInput = ({ label, name, onChange, optional = false }) => {
 
 const DocumentUpload = () => {
   const { userId } = useParams();
-  const location = useLocation();
   const { currentStep, setCurrentStep } = useProgress();
   const [error, setError] = useState('');
-  const [successMsg, setSuccessMsg] = useState('');
   const [bbmpDoc, setBbmpDoc] = useState(null);
   const [planApprovalDoc, setPlanApprovalDoc] = useState(null);
   const [khataCertificateDoc, setKhataCertificateDoc] = useState(null);
@@ -150,7 +147,6 @@ const DocumentUpload = () => {
   const [jvDoc, setJvDoc] = useState(null);
   const [ownershipPercentage, setOwnershipPercentage] = useState(100);
   const [partners, setPartners] = useState([]);
-  const navigate = useNavigate();
 
   // Fetch user data for JV logic
   useEffect(() => {
@@ -189,7 +185,6 @@ const DocumentUpload = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    setSuccessMsg('');
     const formData = new FormData();
     if (bbmpDoc) formData.append('bbmpDoc', bbmpDoc);
     if (planApprovalDoc) formData.append('planApprovalDoc', planApprovalDoc);
@@ -201,7 +196,7 @@ const DocumentUpload = () => {
     kebDocs.forEach((file, idx) => { if (file) formData.append(`keb${idx+1}Doc`, file); });
     if (occcDoc) formData.append('occcDoc', occcDoc);
     if (reraDoc) formData.append('reraDoc', reraDoc);
-    if (ownershipDoc) formData.append('ownershipDocuments', ownershipDoc);
+    if (ownershipDoc) formData.append('ownershipDoc', ownershipDoc);
     if (gpsDoc) formData.append('gpsPhotos', gpsDoc);
     if (motherDeedDoc) formData.append('motherDeedDoc', motherDeedDoc);
     if (familyTreeDoc) formData.append('familyTreeDoc', familyTreeDoc);
@@ -254,96 +249,51 @@ const DocumentUpload = () => {
           </div>
 
           {/* Regulatory Approval Documents Section */}
-          <div style={{ marginBottom: 40 }}>
-            <div style={{
-              background: '#F8F6F3',
-              padding: '40px',
-              borderRadius: '24px',
-              marginBottom: '40px',
-              boxShadow: '0 4px 24px rgba(124, 106, 78, 0.08)',
-              border: '1.5px solid rgba(124, 106, 78, 0.1)',
-              maxWidth: 1100,
-              marginLeft: 'auto',
-              marginRight: 'auto',
-            }}>
-              <h3 style={{
-                marginBottom: '40px',
-                color: '#7C6A4E',
-                fontWeight: 800,
-                fontSize: 28,
-                letterSpacing: 0.5,
-                textAlign: 'center',
-              }}>
-                Regulatory Approval Documents
-              </h3>
-              <div style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '28px',
-                width: '100%',
-              }}>
-                {/* Row 1 */}
-                <div style={{ display: 'flex', gap: '32px', flexWrap: 'wrap' }}>
-                  <div style={{ flex: 1, minWidth: 320 }}>
-                    <FileInput label="BBMP Document" name="bbmpDoc" onChange={e => setBbmpDoc(e.target.files[0])} optional />
-                  </div>
-                  <div style={{ flex: 1, minWidth: 320 }}>
-                    <FileInput label="Plan Approval" name="planApprovalDoc" onChange={e => setPlanApprovalDoc(e.target.files[0])} optional />
-                  </div>
-                </div>
-                {/* Row 2 */}
-                <div style={{ display: 'flex', gap: '32px', flexWrap: 'wrap' }}>
-                  <div style={{ flex: 1, minWidth: 320 }}>
-                    <FileInput label="KHATA" name="khataCertificateDoc" onChange={e => setKhataCertificateDoc(e.target.files[0])} optional />
-                  </div>
-                  <div style={{ flex: 1, minWidth: 320 }}>
-                    <FileInput label="Fiscal Year Land Tax Invoice" name="fiscalYearLandTaxInvoiceDoc" onChange={e => setFiscalYearLandTaxInvoiceDoc(e.target.files[0])} optional />
-                  </div>
-                </div>
-                {/* Row 3 */}
-                <div style={{ display: 'flex', gap: '32px', flexWrap: 'wrap' }}>
-                  <div style={{ flex: 1, minWidth: 320 }}>
-                    <FileInput label="Betterment Certificate" name="bettermentCertificateDoc" onChange={e => setBettermentCertificateDoc(e.target.files[0])} optional />
-                  </div>
-                  <div style={{ flex: 1, minWidth: 320 }}>
-                    <FileInput label="EC" name="ecDoc" onChange={e => setEcDoc(e.target.files[0])} optional />
-                  </div>
-                </div>
-                {/* Row 4 - BWSSB and KEB side by side */}
-                <div style={{ display: 'flex', gap: '32px', flexWrap: 'wrap' }}>
-                  <div style={{ flex: 1, minWidth: 320 }}>
-                    <div style={{ marginBottom: 16 }}>
-                      <div style={{ fontWeight: 600, color: '#7C6A4E', fontSize: 16, display: 'flex', alignItems: 'center', marginBottom: 6 }}>
-                        BWSSB Approvals <span style={{ fontSize: '0.95em', color: '#888', fontWeight: 400, marginLeft: 8 }}>(Optional, up to 3)</span>
-                      </div>
-                      {[0,1,2].map(idx => (
-                        <FileInput
-                          key={idx}
-                          label={`BWSSB Approval ${idx + 1}`}
-                          name={`bwssb${idx+1}Doc`}
-                          onChange={e => handleBwssbChange(idx, e.target.files[0])}
-                          optional
-                        />
-                      ))}
-                    </div>
-                  </div>
-                  <div style={{ flex: 1, minWidth: 320 }}>
-                    <div style={{ marginBottom: 16 }}>
-                      <div style={{ fontWeight: 600, color: '#7C6A4E', fontSize: 16, display: 'flex', alignItems: 'center', marginBottom: 6 }}>
-                        KEB Approvals <span style={{ fontSize: '0.95em', color: '#888', fontWeight: 400, marginLeft: 8 }}>(Optional, up to 3)</span>
-                      </div>
-                      {[0,1,2].map(idx => (
-                        <FileInput
-                          key={idx}
-                          label={`KEB Approval ${idx + 1}`}
-                          name={`keb${idx+1}Doc`}
-                          onChange={e => handleKebChange(idx, e.target.files[0])}
-                          optional
-                        />
-                      ))}
-                    </div>
-                  </div>
-                </div>
+          <div style={{ marginBottom: 32 }}>
+            <h3 style={{ fontSize: 20, fontWeight: 600, color: '#2D3748', marginBottom: 16 }}>
+              Regulatory Approval Documents
+            </h3>
+            <div style={{ display: 'flex', gap: '32px', flexWrap: 'wrap' }}>
+              {/* Row 1 */}
+              <div style={{ flex: 1, minWidth: 320 }}>
+                <FileInput label="BBMP Approval" name="bbmpDoc" onChange={e => setBbmpDoc(e.target.files[0])} optional />
+              </div>
+              <div style={{ flex: 1, minWidth: 320 }}>
+                <FileInput label="Plan Approval" name="planApprovalDoc" onChange={e => setPlanApprovalDoc(e.target.files[0])} optional />
+              </div>
+              {/* Row 2 */}
+              <div style={{ flex: 1, minWidth: 320 }}>
+                <FileInput label="KHATA" name="khataCertificateDoc" onChange={e => setKhataCertificateDoc(e.target.files[0])} optional />
+              </div>
+              <div style={{ flex: 1, minWidth: 320 }}>
+                <FileInput label="Fiscal Year Land Tax Invoice" name="fiscalYearLandTaxInvoiceDoc" onChange={e => setFiscalYearLandTaxInvoiceDoc(e.target.files[0])} optional />
+              </div>
+              {/* Row 3 */}
+              <div style={{ flex: 1, minWidth: 320 }}>
+                <FileInput label="Betterment Certificate" name="bettermentCertificateDoc" onChange={e => setBettermentCertificateDoc(e.target.files[0])} optional />
+              </div>
+              <div style={{ flex: 1, minWidth: 320 }}>
+                <FileInput label="EC" name="ecDoc" onChange={e => setEcDoc(e.target.files[0])} optional />
+              </div>
+              {/* Row 4 - BWSSB and KEB side by side */}
+              <div style={{ flex: 1, minWidth: 320 }}>
+                <h4 style={{ fontSize: 18, fontWeight: 600, color: '#4A5568', marginBottom: 12 }}>BWSSB Approvals (Max 3)</h4>
+                {[0, 1, 2].map(idx => (
+                  <FileInput key={idx} label={`BWSSB Document ${idx + 1}`} name={`bwssb${idx + 1}Doc`} onChange={e => handleBwssbChange(idx, e.target.files[0])} optional />
+                ))}
+              </div>
+              <div style={{ flex: 1, minWidth: 320 }}>
+                <h4 style={{ fontSize: 18, fontWeight: 600, color: '#4A5568', marginBottom: 12 }}>KEB Approvals (Max 3)</h4>
+                {[0, 1, 2].map(idx => (
+                  <FileInput key={idx} label={`KEB Document ${idx + 1}`} name={`keb${idx + 1}Doc`} onChange={e => handleKebChange(idx, e.target.files[0])} optional />
+                ))}
+              </div>
+              {/* Row 5 */}
+              <div style={{ flex: 1, minWidth: 320 }}>
+                <FileInput label="OCCC Approval" name="occcDoc" onChange={e => setOcccDoc(e.target.files[0])} optional />
+              </div>
+              <div style={{ flex: 1, minWidth: 320 }}>
+                <FileInput label="RERA Approval" name="reraDoc" onChange={e => setReraDoc(e.target.files[0])} optional />
               </div>
             </div>
           </div>
@@ -382,13 +332,13 @@ const DocumentUpload = () => {
               margin: '0 auto',
             }}>
               <div style={{ flex: 1, minWidth: 380 }}>
-                <FileInput label="Ownership Documents" name="ownershipDocuments" onChange={e => setOwnershipDoc(e.target.files[0])} required />
+                <FileInput label="Ownership Documents" name="ownershipDoc" onChange={e => setOwnershipDoc(e.target.files[0])} />
               </div>
               <div style={{ flex: 1, minWidth: 380 }}>
                 <FileInput label="Mother Deed" name="motherDeedDoc" onChange={e => setMotherDeedDoc(e.target.files[0])} required />
               </div>
               <div style={{ flex: 1, minWidth: 380 }}>
-                <FileInput label="GPS-tagged Land Photos" name="gpsPhotos" onChange={e => setGpsDoc(e.target.files[0])} required />
+                <FileInput label="GPS-tagged Land Photos" name="gpsPhotos" onChange={e => setGpsDoc(e.target.files[0])} />
               </div>
               <div style={{ flex: 1, minWidth: 380 }}>
                 <FileInput label="Family Tree" name="familyTreeDoc" onChange={e => setFamilyTreeDoc(e.target.files[0])} required />
