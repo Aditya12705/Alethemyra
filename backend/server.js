@@ -371,9 +371,8 @@ app.post('/api/kyc', uploadWithFilter.fields([
     const { fullName, panNumber, aadhaarNumber, userId } = req.body;
     console.log('Extracted body data:', { fullName, panNumber, aadhaarNumber, userId });
 
-    // When using uploadWithFilter.any(), files are in an array in req.files
-    const panCardFile = req.files ? req.files.find(file => file.fieldname === 'panCard') : null;
-    const aadhaarCardFile = req.files ? req.files.find(file => file.fieldname === 'aadhaarCard') : null;
+    const panCardFile = req.files && req.files['panCard'] ? req.files['panCard'][0] : null;
+    const aadhaarCardFile = req.files && req.files['aadhaarCard'] ? req.files['aadhaarCard'][0] : null;
     const panCardUrl = panCardFile ? panCardFile.path : null; // .path contains the Cloudinary URL
     const aadhaarCardUrl = aadhaarCardFile ? aadhaarCardFile.path : null;
     const createdAt = getCurrentDate();
