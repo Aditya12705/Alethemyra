@@ -397,9 +397,22 @@ app.post('/api/kyc', async (req, res) => { // Made async
 
       if (panCardFile) {
         try {
-          const result = await cloudinary.uploader.upload(bufferToDataURI(panCardFile.buffer, panCardFile.mimetype), {
-            folder: 'clutch_app_uploads', resource_type: 'auto'
+          const uploadPromise = new Promise((resolve, reject) => {
+            cloudinary.uploader.upload_stream({
+              folder: 'clutch_app_uploads',
+              resource_type: 'auto',
+              public_id: `pan_${userId}_${Date.now()}`
+            }, (error, result) => {
+              if (error) {
+                console.error('Cloudinary upload error (PAN Card):', error);
+                reject(error);
+                return;
+              }
+              resolve(result);
+            }).end(panCardFile.buffer);
           });
+          
+          const result = await uploadPromise;
           panCardUrl = result.secure_url;
           panCardPublicId = result.public_id;
         } catch (uploadErr) {
@@ -410,9 +423,22 @@ app.post('/api/kyc', async (req, res) => { // Made async
 
       if (aadhaarCardFile) {
          try {
-          const result = await cloudinary.uploader.upload(bufferToDataURI(aadhaarCardFile.buffer, aadhaarCardFile.mimetype), {
-            folder: 'clutch_app_uploads', resource_type: 'auto'
+          const uploadPromise = new Promise((resolve, reject) => {
+            cloudinary.uploader.upload_stream({
+              folder: 'clutch_app_uploads',
+              resource_type: 'auto',
+              public_id: `aadhaar_${userId}_${Date.now()}`
+            }, (error, result) => {
+              if (error) {
+                console.error('Cloudinary upload error (Aadhaar Card):', error);
+                reject(error);
+                return;
+              }
+              resolve(result);
+            }).end(aadhaarCardFile.buffer);
           });
+          
+          const result = await uploadPromise;
           aadhaarCardUrl = result.secure_url;
           aadhaarCardPublicId = result.public_id;
         } catch (uploadErr) {
@@ -482,11 +508,6 @@ app.post('/api/kyc', async (req, res) => { // Made async
     });
   }
 });
-
-// Helper function to convert buffer to data URI (required by Cloudinary upload from buffer)
-function bufferToDataURI(buffer, mimetype) {
-  return `data:${mimetype};base64,${buffer.toString('base64')}`;
-}
 
 // Multer error handler
 app.use((err, req, res, next) => {
