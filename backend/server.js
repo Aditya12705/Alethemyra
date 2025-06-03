@@ -57,24 +57,30 @@ db.on('error', (err) => {
   process.exit(-1);
 });
 
-// Function to test database connection
-const testConnection = async () => {
+// Function to test database connection with retries
+const testConnection = async (retries = 5, delay = 5000) => {
   let client;
-  try {
-    console.log('Attempting to connect to PostgreSQL database...');
-    client = await db.connect();
-    console.log('Successfully connected to PostgreSQL database');
-    return true;
-  } catch (err) {
-    console.error('Error connecting to PostgreSQL:', {
-      message: err.message,
-      code: err.code,
-      stack: err.stack
-    });
-    return false;
-  } finally {
-    if (client) client.release();
+  for (let i = 0; i < retries; i++) {
+    try {
+      console.log(`Attempting to connect to PostgreSQL database (attempt ${i + 1}/${retries})...`);
+      client = await db.connect();
+      console.log('Successfully connected to PostgreSQL database');
+      return true;
+    } catch (err) {
+      console.error(`Error connecting to PostgreSQL (attempt ${i + 1}/${retries}):`, {
+        message: err.message,
+        code: err.code,
+        stack: err.stack
+      });
+      if (i < retries - 1) {
+        console.log(`Retrying in ${delay/1000} seconds...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    } finally {
+      if (client) client.release();
+    }
   }
+  return false;
 };
 
 // Function to initialize database
@@ -83,100 +89,114 @@ const initializeDatabase = async () => {
     // Test connection first
     const isConnected = await testConnection();
     if (!isConnected) {
-      console.error('Could not establish database connection. Exiting...');
+      console.error('Could not establish database connection after multiple retries. Exiting...');
       process.exit(1);
     }
 
     console.log('Starting database initialization...');
-    // Create Tables
-    await db.query(`
-      CREATE TABLE IF NOT EXISTS user_credentials (
-        id SERIAL PRIMARY KEY,
-        name VARCHAR(255) NOT NULL UNIQUE,
-        number VARCHAR(255) NOT NULL
-      )
-    `);
-    console.log('Table user_credentials checked/created');
+    
+    // Create Tables with error handling
+    try {
+      await db.query(`
+        CREATE TABLE IF NOT EXISTS user_credentials (
+          id SERIAL PRIMARY KEY,
+          name VARCHAR(255) NOT NULL UNIQUE,
+          number VARCHAR(255) NOT NULL
+        )
+      `);
+      console.log('Table user_credentials checked/created');
 
-    await db.query(`
-      CREATE TABLE IF NOT EXISTS users (
-        id SERIAL PRIMARY KEY,
-        user_id INT NOT NULL UNIQUE REFERENCES user_credentials(id) ON DELETE CASCADE,
-        userUniqueId VARCHAR(255) UNIQUE,
-        fullName VARCHAR(255) NOT NULL,
-        panNumber VARCHAR(255) NOT NULL,
-        aadhaarNumber VARCHAR(255) NOT NULL,
-        panCardPath VARCHAR(255),
-        aadhaarCardPath VARCHAR(255),
-        crust_score REAL,
-        crust_rating VARCHAR(255),
-        companyName VARCHAR(255),
-        projectName VARCHAR(255),
-        creditRequirement INT,
-        landLocation VARCHAR(255),
-        landSize INT,
-        marketValue INT,
-        landDevStatus VARCHAR(255),
-        corporatePhone VARCHAR(255),
-        tinNumber VARCHAR(255),
-        gstNumber VARCHAR(255),
-        cinNumber VARCHAR(255),
-        plannedStartDate VARCHAR(255),
-        ownershipPercentage INT,
-        financialContribution INT,
-        partners TEXT,
-        hasRegulatoryApprovals BOOLEAN,
-        hasGpsPhotos BOOLEAN,
-        expectedPermissionDate VARCHAR(255),
-        status VARCHAR(255) DEFAULT 'Pending',
-        createdAt VARCHAR(255),
-        documentNotes TEXT,
-        ownershipDocPath VARCHAR(255),
-        regulatoryDocPath VARCHAR(255),
-        gpsDocPath VARCHAR(255),
-        bbmpDocPath VARCHAR(255),
-        planApprovalDocPath VARCHAR(255),
-        khataCertificateDocPath VARCHAR(255),
-        fiscalYearLandTaxInvoiceDocPath VARCHAR(255),
-        bettermentCertificateDocPath VARCHAR(255),
-        bwssb1DocPath VARCHAR(255),
-        bwssb2DocPath VARCHAR(255),
-        bwssb3DocPath VARCHAR(255),
-        keb1DocPath VARCHAR(255),
-        keb2DocPath VARCHAR(255),
-        keb3DocPath VARCHAR(255),
-        ecDocPath VARCHAR(255),
-        occcDocPath VARCHAR(255),
-        reraDocPath VARCHAR(255),
-        landDocPath VARCHAR(255),
-        jvDocPath VARCHAR(255),
-        motherDeedDocPath VARCHAR(255),
-        familyTreeDocPath VARCHAR(255),
-        nocDocPath VARCHAR(255),
-        legalDisputeDocPath VARCHAR(255)
-      )
-    `);
-    console.log('Table users checked/created');
+      await db.query(`
+        CREATE TABLE IF NOT EXISTS users (
+          id SERIAL PRIMARY KEY,
+          user_id INT NOT NULL UNIQUE REFERENCES user_credentials(id) ON DELETE CASCADE,
+          userUniqueId VARCHAR(255) UNIQUE,
+          fullName VARCHAR(255) NOT NULL,
+          panNumber VARCHAR(255) NOT NULL,
+          aadhaarNumber VARCHAR(255) NOT NULL,
+          panCardPath VARCHAR(255),
+          aadhaarCardPath VARCHAR(255),
+          crust_score REAL,
+          crust_rating VARCHAR(255),
+          companyName VARCHAR(255),
+          projectName VARCHAR(255),
+          creditRequirement INT,
+          landLocation VARCHAR(255),
+          landSize INT,
+          marketValue INT,
+          landDevStatus VARCHAR(255),
+          corporatePhone VARCHAR(255),
+          tinNumber VARCHAR(255),
+          gstNumber VARCHAR(255),
+          cinNumber VARCHAR(255),
+          plannedStartDate VARCHAR(255),
+          ownershipPercentage INT,
+          financialContribution INT,
+          partners TEXT,
+          hasRegulatoryApprovals BOOLEAN,
+          hasGpsPhotos BOOLEAN,
+          expectedPermissionDate VARCHAR(255),
+          status VARCHAR(255) DEFAULT 'Pending',
+          createdAt VARCHAR(255),
+          documentNotes TEXT,
+          ownershipDocPath VARCHAR(255),
+          regulatoryDocPath VARCHAR(255),
+          gpsDocPath VARCHAR(255),
+          bbmpDocPath VARCHAR(255),
+          planApprovalDocPath VARCHAR(255),
+          khataCertificateDocPath VARCHAR(255),
+          fiscalYearLandTaxInvoiceDocPath VARCHAR(255),
+          bettermentCertificateDocPath VARCHAR(255),
+          bwssb1DocPath VARCHAR(255),
+          bwssb2DocPath VARCHAR(255),
+          bwssb3DocPath VARCHAR(255),
+          keb1DocPath VARCHAR(255),
+          keb2DocPath VARCHAR(255),
+          keb3DocPath VARCHAR(255),
+          ecDocPath VARCHAR(255),
+          occcDocPath VARCHAR(255),
+          reraDocPath VARCHAR(255),
+          landDocPath VARCHAR(255),
+          jvDocPath VARCHAR(255),
+          motherDeedDocPath VARCHAR(255),
+          familyTreeDocPath VARCHAR(255),
+          nocDocPath VARCHAR(255),
+          legalDisputeDocPath VARCHAR(255)
+        )
+      `);
+      console.log('Table users checked/created');
 
-    await db.query(`
-      CREATE TABLE IF NOT EXISTS admins (
-        id SERIAL PRIMARY KEY,
-        username VARCHAR(255) NOT NULL,
-        password VARCHAR(255) NOT NULL
-      )
-    `);
-    console.log('Table admins checked/created');
+      await db.query(`
+        CREATE TABLE IF NOT EXISTS admins (
+          id SERIAL PRIMARY KEY,
+          username VARCHAR(255) NOT NULL,
+          password VARCHAR(255) NOT NULL
+        )
+      `);
+      console.log('Table admins checked/created');
 
-    // Insert default admin if not exists
-    const adminExists = await db.query(`SELECT * FROM admins WHERE username = $1`, ['admin']);
-    if (adminExists.rows.length === 0) {
-      await db.query(`INSERT INTO admins (username, password) VALUES ($1, $2)`, ['admin', 'password123']);
-      console.log('Default admin created');
+      // Insert default admin if not exists
+      const adminExists = await db.query(`SELECT * FROM admins WHERE username = $1`, ['admin']);
+      if (adminExists.rows.length === 0) {
+        await db.query(`INSERT INTO admins (username, password) VALUES ($1, $2)`, ['admin', 'password123']);
+        console.log('Default admin created');
+      }
+
+      console.log('Database initialization completed successfully');
+    } catch (err) {
+      console.error('Error during table creation:', {
+        message: err.message,
+        code: err.code,
+        stack: err.stack
+      });
+      throw err;
     }
-
-    console.log('Database initialization completed successfully');
   } catch (err) {
-    console.error('Database initialization error:', err);
+    console.error('Database initialization error:', {
+      message: err.message,
+      code: err.code,
+      stack: err.stack
+    });
     process.exit(1);
   }
 };
@@ -880,4 +900,20 @@ app.get('/api/user/:id/status', async (req, res) => { // Made async
 // Start the server
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
+});
+
+// Add a health check endpoint
+app.get('/health', async (req, res) => {
+  try {
+    const client = await db.connect();
+    client.release();
+    res.json({ status: 'healthy', database: 'connected' });
+  } catch (err) {
+    console.error('Health check failed:', err);
+    res.status(500).json({ 
+      status: 'unhealthy', 
+      database: 'disconnected',
+      error: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error'
+    });
+  }
 });
