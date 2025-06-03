@@ -143,6 +143,7 @@ const DocumentUpload = () => {
   const [reraDoc, setReraDoc] = useState(null);
   const [ownershipDoc, setOwnershipDoc] = useState(null);
   const [gpsDoc, setGpsDoc] = useState(null);
+  const [landDoc, setLandDoc] = useState(null);
   const [motherDeedDoc, setMotherDeedDoc] = useState(null);
   const [familyTreeDoc, setFamilyTreeDoc] = useState(null);
   const [nocDoc, setNocDoc] = useState(null);
