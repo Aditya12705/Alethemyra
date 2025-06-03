@@ -511,6 +511,11 @@ app.post('/api/kyc', (req, res, next) => {
       });
 
       bb.on('error', (err) => {
+        // Suppress 'Unexpected end of form' error if response already sent or processing succeeded
+        if (res.headersSent || (err && err.message && err.message.includes('Unexpected end of form'))) {
+          console.warn('Suppressed Busboy error:', err.message);
+          return;
+        }
         console.error('Busboy error:', err);
         reject(err);
       });
@@ -687,6 +692,11 @@ app.post('/api/submit/:id', (req, res, next) => {
       });
 
       bb.on('error', (err) => {
+        // Suppress 'Unexpected end of form' error if response already sent or processing succeeded
+        if (res.headersSent || (err && err.message && err.message.includes('Unexpected end of form'))) {
+          console.warn('Suppressed Busboy error:', err.message);
+          return;
+        }
         console.error('Busboy error:', err);
         reject(err);
       });
