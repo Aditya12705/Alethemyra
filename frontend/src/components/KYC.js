@@ -63,7 +63,6 @@ const KYC = () => {
     try {
       const response = await axios.post(`${config.API_URL}/api/kyc`, formData, {
         headers: {
-          'Content-Type': 'multipart/form-data',
         },
       });
       if (response.data.success) {
