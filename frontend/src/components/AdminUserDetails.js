@@ -36,7 +36,6 @@ const AdminUserDetails = () => {
           marketValue: userData.marketvalue,
           crust_score: userData.crust_score,
           crust_rating: userData.crust_rating,
-          risk_level: userData.risk_level,
           tinNumber: userData.tinnumber,
           gstNumber: userData.gstnumber,
           companyName: userData.companyname,
