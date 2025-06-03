@@ -27,18 +27,18 @@ const Login = () => {
       if (response.data.success) {
         const userId = response.data.userId;
         // After login, fetch user details to check if KYC is already done
-        const userRes = await axios.get(`http://localhost:5000/api/user/${userId}`);
-        const user = userRes.data;
+        // const userRes = await axios.get(`http://localhost:5000/api/user/${userId}`);
+        // const user = userRes.data;
         
         // If KYC is done (all fields and docs present), go to dashboard, else go to KYC
-        if (
-          user.fullName && user.panNumber && user.aadhaarNumber &&
-          user.panCardPath && user.aadhaarCardPath
-        ) {
+        // if (
+        //   user.fullName && user.panNumber && user.aadhaarNumber &&
+        //   user.panCardPath && user.aadhaarCardPath
+        // ) {
           navigate(`/user-dashboard/${userId}`);
-        } else {
-          navigate(`/kyc/${userId}`);
-        }
+        // } else {
+        //   navigate(`/kyc/${userId}`);
+        // }
       } else {
         setError(response.data.message || 'Login failed. Please check your credentials.');
       }
