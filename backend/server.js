@@ -1,24 +1,3 @@
-// Add uncaught exception and unhandled rejection handlers
-process.on('uncaughtException', (err) => {
-  console.error('UNCAUGHT EXCEPTION:', {
-    message: err.message,
-    stack: err.stack,
-    code: err.code
-  });
-  // It's often recommended to exit the process after logging uncaught exceptions
-  // process.exit(1);
-});
-
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('UNHANDLED REJECTION:', {
-    reason: reason,
-    promise: promise,
-    stack: reason instanceof Error ? reason.stack : 'N/A'
-  });
-  // Optionally exit the process
-  // process.exit(1);
-});
-
 const express = require('express');
 const mysql = require('mysql2');
 const multer = require('multer');
@@ -42,7 +21,6 @@ const port = process.env.PORT || 5000;
 const allowedOrigins = [
   'http://localhost:3000',
   'https://clutch-frontend.onrender.com',
-  'https://alethemyra.onrender.com',
   process.env.FRONTEND_URL
 ].filter(Boolean);
 
@@ -57,6 +35,7 @@ app.use(cors({
   credentials: true
 }));
 app.use(express.json());
+app.use(bodyParser.json());
 
 // Remove the express.static('/uploads', ...) line as Cloudinary will serve files
 // app.use('/uploads', express.static('uploads'));
@@ -71,36 +50,19 @@ const db = new Pool({
   connectionTimeoutMillis: 2000, // How long to wait for a connection
 });
 
-// Add error handler for the pool
-db.on('error', (err) => {
-  console.error('Unexpected error on idle client', err);
-  process.exit(-1);
-});
-
-// Function to test database connection with retries
-const testConnection = async (retries = 5, delay = 5000) => {
+// Function to test database connection
+const testConnection = async () => {
   let client;
-  for (let i = 0; i < retries; i++) {
-    try {
-      console.log(`Attempting to connect to PostgreSQL database (attempt ${i + 1}/${retries})...`);
-      client = await db.connect();
-      console.log('Successfully connected to PostgreSQL database');
-      return true;
-    } catch (err) {
-      console.error(`Error connecting to PostgreSQL (attempt ${i + 1}/${retries}):`, {
-        message: err.message,
-        code: err.code,
-        stack: err.stack
-      });
-      if (i < retries - 1) {
-        console.log(`Retrying in ${delay/1000} seconds...`);
-        await new Promise(resolve => setTimeout(resolve, delay));
-      }
-    } finally {
-      if (client) client.release();
-    }
+  try {
+    client = await db.connect();
+    console.log('Successfully connected to PostgreSQL database');
+    return true;
+  } catch (err) {
+    console.error('Error connecting to PostgreSQL:', err.message);
+    return false;
+  } finally {
+    if (client) client.release();
   }
-  return false;
 };
 
 // Function to initialize database
@@ -109,115 +71,99 @@ const initializeDatabase = async () => {
     // Test connection first
     const isConnected = await testConnection();
     if (!isConnected) {
-      console.error('Could not establish database connection after multiple retries. Exiting...');
+      console.error('Could not establish database connection. Exiting...');
       process.exit(1);
     }
 
-    console.log('Starting database initialization...');
-    
-    // Create Tables with error handling
-    try {
-      await db.query(`
-        CREATE TABLE IF NOT EXISTS user_credentials (
-          id SERIAL PRIMARY KEY,
-          name VARCHAR(255) NOT NULL UNIQUE,
-          number VARCHAR(255) NOT NULL
-        )
-      `);
-      console.log('Table user_credentials checked/created');
+    // Create Tables
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS user_credentials (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(255) NOT NULL UNIQUE,
+        number VARCHAR(255) NOT NULL
+      )
+    `);
+    console.log('Table user_credentials checked/created');
 
-      await db.query(`
-        CREATE TABLE IF NOT EXISTS users (
-          id SERIAL PRIMARY KEY,
-          user_id INT NOT NULL UNIQUE REFERENCES user_credentials(id) ON DELETE CASCADE,
-          userUniqueId VARCHAR(255) UNIQUE,
-          fullName VARCHAR(255) NOT NULL,
-          panNumber VARCHAR(255) NOT NULL,
-          aadhaarNumber VARCHAR(255) NOT NULL,
-          panCardPath VARCHAR(255),
-          aadhaarCardPath VARCHAR(255),
-          crust_score REAL,
-          crust_rating VARCHAR(255),
-          companyName VARCHAR(255),
-          projectName VARCHAR(255),
-          creditRequirement INT,
-          landLocation VARCHAR(255),
-          landSize INT,
-          marketValue INT,
-          landDevStatus VARCHAR(255),
-          corporatePhone VARCHAR(255),
-          tinNumber VARCHAR(255),
-          gstNumber VARCHAR(255),
-          cinNumber VARCHAR(255),
-          plannedStartDate VARCHAR(255),
-          ownershipPercentage INT,
-          financialContribution INT,
-          partners TEXT,
-          hasRegulatoryApprovals BOOLEAN,
-          hasGpsPhotos BOOLEAN,
-          expectedPermissionDate VARCHAR(255),
-          status VARCHAR(255) DEFAULT 'Pending',
-          createdAt VARCHAR(255),
-          documentNotes TEXT,
-          ownershipDocPath VARCHAR(255),
-          regulatoryDocPath VARCHAR(255),
-          gpsDocPath VARCHAR(255),
-          bbmpDocPath VARCHAR(255),
-          planApprovalDocPath VARCHAR(255),
-          khataCertificateDocPath VARCHAR(255),
-          fiscalYearLandTaxInvoiceDocPath VARCHAR(255),
-          bettermentCertificateDocPath VARCHAR(255),
-          bwssb1DocPath VARCHAR(255),
-          bwssb2DocPath VARCHAR(255),
-          bwssb3DocPath VARCHAR(255),
-          keb1DocPath VARCHAR(255),
-          keb2DocPath VARCHAR(255),
-          keb3DocPath VARCHAR(255),
-          ecDocPath VARCHAR(255),
-          occcDocPath VARCHAR(255),
-          reraDocPath VARCHAR(255),
-          landDocPath VARCHAR(255),
-          jvDocPath VARCHAR(255),
-          motherDeedDocPath VARCHAR(255),
-          familyTreeDocPath VARCHAR(255),
-          nocDocPath VARCHAR(255),
-          legalDisputeDocPath VARCHAR(255),
-          risk_level VARCHAR(255)
-        )
-      `);
-      console.log('Table users checked/created');
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS users (
+        id SERIAL PRIMARY KEY,
+        user_id INT NOT NULL UNIQUE REFERENCES user_credentials(id) ON DELETE CASCADE,
+        userUniqueId VARCHAR(255) UNIQUE,
+        fullName VARCHAR(255) NOT NULL,
+        panNumber VARCHAR(255) NOT NULL,
+        aadhaarNumber VARCHAR(255) NOT NULL,
+        panCardPath VARCHAR(255),
+        aadhaarCardPath VARCHAR(255),
+        crust_score REAL,
+        crust_rating VARCHAR(255),
+        companyName VARCHAR(255),
+        projectName VARCHAR(255),
+        creditRequirement INT,
+        landLocation VARCHAR(255),
+        landSize INT,
+        marketValue INT,
+        landDevStatus VARCHAR(255),
+        corporatePhone VARCHAR(255),
+        tinNumber VARCHAR(255),
+        gstNumber VARCHAR(255),
+        cinNumber VARCHAR(255),
+        plannedStartDate VARCHAR(255),
+        ownershipPercentage INT,
+        financialContribution INT,
+        partners TEXT,
+        hasRegulatoryApprovals BOOLEAN,
+        hasGpsPhotos BOOLEAN,
+        expectedPermissionDate VARCHAR(255),
+        status VARCHAR(255) DEFAULT 'Pending',
+        createdAt VARCHAR(255),
+        documentNotes TEXT,
+        ownershipDocPath VARCHAR(255),
+        regulatoryDocPath VARCHAR(255),
+        gpsDocPath VARCHAR(255),
+        bbmpDocPath VARCHAR(255),
+        planApprovalDocPath VARCHAR(255),
+        khataCertificateDocPath VARCHAR(255),
+        fiscalYearLandTaxInvoiceDocPath VARCHAR(255),
+        bettermentCertificateDocPath VARCHAR(255),
+        bwssb1DocPath VARCHAR(255),
+        bwssb2DocPath VARCHAR(255),
+        bwssb3DocPath VARCHAR(255),
+        keb1DocPath VARCHAR(255),
+        keb2DocPath VARCHAR(255),
+        keb3DocPath VARCHAR(255),
+        ecDocPath VARCHAR(255),
+        occcDocPath VARCHAR(255),
+        reraDocPath VARCHAR(255),
+        landDocPath VARCHAR(255),
+        jvDocPath VARCHAR(255),
+        motherDeedDocPath VARCHAR(255),
+        familyTreeDocPath VARCHAR(255),
+        nocDocPath VARCHAR(255),
+        legalDisputeDocPath VARCHAR(255)
+      )
+    `);
+    console.log('Table users checked/created');
 
-      await db.query(`
-        CREATE TABLE IF NOT EXISTS admins (
-          id SERIAL PRIMARY KEY,
-          username VARCHAR(255) NOT NULL,
-          password VARCHAR(255) NOT NULL
-        )
-      `);
-      console.log('Table admins checked/created');
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS admins (
+        id SERIAL PRIMARY KEY,
+        username VARCHAR(255) NOT NULL,
+        password VARCHAR(255) NOT NULL
+      )
+    `);
+    console.log('Table admins checked/created');
 
-      // Insert default admin if not exists
-      const adminExists = await db.query(`SELECT * FROM admins WHERE username = $1`, ['admin']);
-      if (adminExists.rows.length === 0) {
-        await db.query(`INSERT INTO admins (username, password) VALUES ($1, $2)`, ['admin', 'password123']);
-        console.log('Default admin created');
-      }
-
-      console.log('Database initialization completed successfully');
-    } catch (err) {
-      console.error('Error during table creation:', {
-        message: err.message,
-        code: err.code,
-        stack: err.stack
-      });
-      throw err;
+    // Insert default admin if not exists
+    const adminExists = await db.query(`SELECT * FROM admins WHERE username = $1`, ['admin']);
+    if (adminExists.rows.length === 0) {
+      await db.query(`INSERT INTO admins (username, password) VALUES ($1, $2)`, ['admin', 'password123']);
+      console.log('Default admin created');
     }
+
+    console.log('Database initialization completed successfully');
   } catch (err) {
-    console.error('Database initialization error:', {
-      message: err.message,
-      code: err.code,
-      stack: err.stack
-    });
+    console.error('Database initialization error:', err);
     process.exit(1);
   }
 };
@@ -242,28 +188,31 @@ const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
     folder: 'clutch_app_uploads',
-    resource_type: 'auto',
-    allowed_formats: ['jpg', 'jpeg', 'png', 'pdf'],
+    resource_type: 'auto', // Automatically detect resource type
+    allowed_formats: ['jpg', 'jpeg', 'png', 'pdf'], // Restrict allowed formats
     transformation: [
-      { quality: 'auto' },
-      { fetch_format: 'auto' }
+      { quality: 'auto' }, // Optimize quality
+      { fetch_format: 'auto' } // Convert to WebP if supported
     ]
   }
 });
 
 // Initialize multer with Cloudinary storage
-const upload = multer({ 
-  storage: storage,
-  limits: { fileSize: 5 * 1024 * 1024 },
-  fileFilter: (req, file, cb) => {
-    const allowedTypes = ['image/jpeg', 'image/png', 'application/pdf'];
-    if (allowedTypes.includes(file.mimetype)) {
-      cb(null, true);
-    } else {
-      cb(new Error('Invalid file type. Only JPEG, PNG, and PDF are allowed.'), false);
-    }
+const upload = multer({ storage: storage });
+
+// File filter (Keep your existing file filter logic if needed)
+const fileFilter = (req, file, cb) => {
+  const allowedTypes = ['image/jpeg', 'image/png', 'application/pdf'];
+  if (allowedTypes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error('Invalid file type. Only JPEG, PNG, and PDF are allowed.'), false);
   }
-});
+};
+
+// Re-initialize multer with file filter if needed
+const uploadWithFilter = multer({ storage: storage, fileFilter: fileFilter, limits: { fileSize: 5 * 1024 * 1024 } });
+
 
 // Helper function to get current date
 const getCurrentDate = () => new Date().toISOString().split('T')[0]; // Keep as is, stores as VARCHAR
@@ -353,226 +302,54 @@ app.post('/api/admin/login', async (req, res) => { // Made async
 });
 
 // --- Submit KYC ---
-// Manual handling of multipart form data for KYC
-app.post('/api/kyc', (req, res, next) => {
-  req.skipMulter = true;
-  next();
-}, (req, res) => {
-  console.log('Received request for /api/kyc (Manual Multipart Handling)');
-  
-  // Log request end/close for diagnostics
-  req.on('end', () => console.log('Request stream ended (kyc)'));
-  req.on('close', () => console.log('Request stream closed (kyc)'));
+// Use uploadWithFilter for file uploads if you want the file filter applied
+app.post('/api/kyc', uploadWithFilter.fields([
+  { name: 'panCard', maxCount: 1 },
+  { name: 'aadhaarCard', maxCount: 1 }
+]), async (req, res) => { // Made async
+  try {
+    const { fullName, panNumber, aadhaarNumber, userId } = req.body;
+    const panCardUrl = req.files && req.files['panCard'] ? req.files['panCard'][0].path : null; // .path contains the Cloudinary URL
+    const aadhaarCardUrl = req.files && req.files['aadhaarCard'] ? req.files['aadhaarCard'][0].path : null;
+    const createdAt = getCurrentDate();
 
-  // Create a promise to handle the entire request
-  const handleRequest = new Promise((resolve, reject) => {
-    try {
-      const busboy = require('busboy');
-      const bb = busboy({ headers: req.headers });
-
-      const fields = {};
-      const files = {};
-      let isFinished = false;
-
-      bb.on('file', (fieldname, file, filename, encoding, mimetype) => {
-        console.log('File ', fieldname, filename, encoding, mimetype);
-        // Buffer the file for Cloudinary upload
-        const fileBuffer = [];
-        file.on('data', (data) => { fileBuffer.push(data); });
-        file.on('end', () => { files[fieldname] = { buffer: Buffer.concat(fileBuffer), mimetype, originalname: filename }; });
-      });
-
-      bb.on('field', (fieldname, val, fieldnameTruncated, valTruncated, encoding, mimetype) => {
-        console.log('Field ', fieldname, val);
-        fields[fieldname] = val;
-      });
-
-      bb.on('finish', async () => {
-        if (isFinished) return; // Prevent multiple finish events
-        isFinished = true;
-        
-        try {
-          console.log('Busboy finished parsing form.');
-          console.log('Parsed fields:', fields);
-          console.log('Parsed files:', Object.keys(files));
-
-          const { fullName, panNumber, aadhaarNumber, userId } = fields;
-
-          const panCardFile = files['panCard'];
-          const aadhaarCardFile = files['aadhaarCard'];
-
-          // Upload files to Cloudinary manually
-          let panCardUrl = null;
-          let aadhaarCardUrl = null;
-          let panCardPublicId = null;
-          let aadhaarCardPublicId = null;
-
-          if (panCardFile) {
-            try {
-              const uploadPromise = new Promise((resolve, reject) => {
-                cloudinary.uploader.upload_stream({
-                  folder: 'clutch_app_uploads',
-                  resource_type: 'auto',
-                  public_id: `pan_${userId}_${Date.now()}`
-                }, (error, result) => {
-                  if (error) {
-                    console.error('Cloudinary upload error (PAN Card):', error);
-                    reject(error);
-                    return;
-                  }
-                  resolve(result);
-                }).end(panCardFile.buffer);
-              });
-              
-              const result = await uploadPromise;
-              panCardUrl = result.secure_url;
-              panCardPublicId = result.public_id;
-            } catch (uploadErr) {
-              console.error('Cloudinary upload error (PAN Card):', uploadErr);
-              // Continue to check other files, but validation might fail later
-            }
-          }
-
-          if (aadhaarCardFile) {
-            try {
-              const uploadPromise = new Promise((resolve, reject) => {
-                cloudinary.uploader.upload_stream({
-                  folder: 'clutch_app_uploads',
-                  resource_type: 'auto',
-                  public_id: `aadhaar_${userId}_${Date.now()}`
-                }, (error, result) => {
-                  if (error) {
-                    console.error('Cloudinary upload error (Aadhaar Card):', error);
-                    reject(error);
-                    return;
-                  }
-                  resolve(result);
-                }).end(aadhaarCardFile.buffer);
-              });
-              
-              const result = await uploadPromise;
-              aadhaarCardUrl = result.secure_url;
-              aadhaarCardPublicId = result.public_id;
-            } catch (uploadErr) {
-              console.error('Cloudinary upload error (Aadhaar Card):', uploadErr);
-              // Continue to check other files, but validation might fail later
-            }
-          }
-
-          const createdAt = getCurrentDate();
-          console.log('File URLs after upload:', { panCardUrl, aadhaarCardUrl });
-
-          if (!fullName || !panNumber || !aadhaarNumber || !panCardUrl || !aadhaarCardUrl || !userId) {
-            console.log('Validation failed: Missing required fields or files after upload attempt.');
-            // Clean up uploaded files if validation fails after upload
-            if (panCardPublicId) cloudinary.uploader.destroy(panCardPublicId);
-            if (aadhaarCardPublicId) cloudinary.uploader.destroy(aadhaarCardPublicId);
-            resolve({ success: false, status: 400, message: 'All fields, files, and userId are required.' });
-            return;
-          }
-
-          // Database checks - adjust for pg
-          console.log('Checking user_credentials existence for userId:', userId);
-          const userCredentialExists = await db.query(`SELECT * FROM user_credentials WHERE id = $1`, [userId]);
-          if (userCredentialExists.rows.length === 0) {
-            console.log('user_credentials not found for userId:', userId);
-            // Clean up uploaded files
-            if (panCardPublicId) cloudinary.uploader.destroy(panCardPublicId);
-            if (aadhaarCardPublicId) cloudinary.uploader.destroy(aadhaarCardPublicId);
-            resolve({ success: false, status: 404, message: 'User not found in user_credentials.' });
-            return;
-          }
-          console.log('user_credentials found.');
-
-          console.log('Checking users table existence for userId:', userId);
-          const userExists = await db.query(`SELECT * FROM users WHERE id = $1`, [userId]);
-          if (userExists.rows.length === 0) {
-            console.log('User not found in users table for userId:', userId);
-            // Clean up uploaded files
-            if (panCardPublicId) cloudinary.uploader.destroy(panCardPublicId);
-            if (aadhaarCardPublicId) cloudinary.uploader.destroy(aadhaarCardPublicId);
-            resolve({ success: false, status: 404, message: 'User not found in users table.' });
-            return;
-          }
-          console.log('User found in users table.');
-
-          // Update users table - adjust for pg parameterized query
-          console.log('Attempting to update users table for userId:', userId);
-          await db.query(
-            `UPDATE users SET fullName = $1, panNumber = $2, aadhaarNumber = $3, panCardPath = $4, aadhaarCardPath = $5, createdAt = $6 WHERE id = $7`,
-            [fullName, panNumber, aadhaarNumber, panCardUrl, aadhaarCardUrl, createdAt, userId]
-          );
-          console.log('Successfully updated users table for userId:', userId);
-
-          resolve({ success: true, userId: userId });
-        } catch (error) {
-          reject(error);
-        }
-      });
-
-      bb.on('error', (err) => {
-        // Suppress 'Unexpected end of form' error if response already sent or processing succeeded
-        if (res.headersSent || (err && err.message && err.message.includes('Unexpected end of form'))) {
-          console.warn('Suppressed Busboy error:', err.message);
-          return;
-        }
-        console.error('Busboy error:', err);
-        reject(err);
-      });
-
-      bb.on('close', () => {
-        console.log('Busboy close event fired (kyc)');
-      });
-
-      // Pipe the request stream to Busboy
-      req.pipe(bb);
-    } catch (error) {
-      reject(error);
+    if (!fullName || !panNumber || !aadhaarNumber || !panCardUrl || !aadhaarCardUrl || !userId) {
+      // Consider deleting uploaded files from Cloudinary if validation fails here
+      if (panCardUrl) cloudinary.uploader.destroy(req.files['panCard'][0].public_id); // Use public_id for deletion
+      if (aadhaarCardUrl) cloudinary.uploader.destroy(req.files['aadhaarCard'][0].public_id);
+      return res.status(400).json({ success: false, message: 'All fields, files, and userId are required.' });
     }
-  });
+    
+    // Database checks - adjust for pg
+    const userCredentialExists = await db.query(`SELECT * FROM user_credentials WHERE id = $1`, [userId]);
+    if (userCredentialExists.rows.length === 0) {
+       // Consider deleting uploaded files from Cloudinary
+      if (panCardUrl) cloudinary.uploader.destroy(req.files['panCard'][0].public_id);
+      if (aadhaarCardUrl) cloudinary.uploader.destroy(req.files['aadhaarCard'][0].public_id);
+      return res.status(404).json({ success: false, message: 'User not found in user_credentials.' });
+    }
+    const userExists = await db.query(`SELECT * FROM users WHERE id = $1`, [userId]);
+     if (userExists.rows.length === 0) {
+      // Consider deleting uploaded files from Cloudinary
+      if (panCardUrl) cloudinary.uploader.destroy(req.files['panCard'][0].public_id);
+      if (aadhaarCardUrl) cloudinary.uploader.destroy(req.files['aadhaarCard'][0].public_id);
+      return res.status(404).json({ success: false, message: 'User not found in users table.' });
+    }
 
-  // Handle the promise result
-  handleRequest
-    .then(result => {
-      if (!res.headersSent) {
-        if (result.status) {
-          res.status(result.status).json(result);
-        } else {
-          res.json(result);
-        }
-      }
-    })
-    .catch(error => {
-      console.error('Error in KYC upload:', error);
-      if (!res.headersSent) {
-        res.status(500).json({
-          success: false,
-          message: 'Error submitting KYC',
-          error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
-        });
-      }
-    });
-});
+    // Update users table - adjust for pg parameterized query
+    await db.query(
+      `UPDATE users SET fullName = $1, panNumber = $2, aadhaarNumber = $3, panCardPath = $4, aadhaarCardPath = $5, createdAt = $6 WHERE id = $7`,
+      // Save the Cloudinary URLs (or public_id if you prefer) to the database
+      [fullName, panNumber, aadhaarNumber, panCardUrl, aadhaarCardUrl, createdAt, userId]
+    );
+    res.json({ success: true, userId: userId });
 
-// Add a middleware to skip multer for specific routes
-app.use((req, res, next) => {
-  if (req.skipMulter) {
-    next();
-  } else {
-    upload.any()(req, res, next);
-  }
-});
-
-// Multer error handler
-app.use((err, req, res, next) => {
-  if (err instanceof multer.MulterError) {
-    console.error('Multer error:', err);
-    res.status(400).json({ success: false, message: `File upload error: ${err.message}` });
-  } else if (err) {
-    console.error('Other file upload related error:', err);
-    res.status(500).json({ success: false, message: `File upload failed: ${err.message}` });
-  } else {
-    next(); // Pass the error to the next error handler (if any)
+  } catch (e) {
+    console.error('Caught error in /api/kyc:', e);
+     // Consider deleting uploaded files from Cloudinary in case of other errors
+    if (req.files && req.files['panCard'] && req.files['panCard'][0].public_id) cloudinary.uploader.destroy(req.files['panCard'][0].public_id);
+    if (req.files && req.files['aadhaarCard'] && req.files['aadhaarCard'][0].public_id) cloudinary.uploader.destroy(req.files['aadhaarCard'][0].public_id);
+    res.status(500).json({ success: false, message: 'Internal server error (uncaught).' });
   }
 });
 
@@ -605,281 +382,165 @@ app.post('/api/user/:id/crust-score', async (req, res) => { // Made async
   }
 });
 
-// --- Endpoint for uploading optional documents after initial submission ---
-app.post('/api/user/:id/optional-documents', (req, res, next) => {
-  // Skip multer middleware for this route
-  req.skipMulter = true;
-  next();
-}, async (req, res) => {
+// --- Submit Application ---
+// Use uploadWithFilter for file uploads
+app.post('/api/submit/:id', uploadWithFilter.fields([
+  { name: 'bbmpDoc', maxCount: 1 },
+  { name: 'planApprovalDoc', maxCount: 1 },
+  { name: 'khataCertificateDoc', maxCount: 1 },
+  { name: 'fiscalYearLandTaxInvoiceDoc', maxCount: 1 },
+  { name: 'bettermentCertificateDoc', maxCount: 1 },
+  { name: 'bwssb1Doc', maxCount: 1 },
+  { name: 'bwssb2Doc', maxCount: 1 },
+  { name: 'bwssb3Doc', maxCount: 1 },
+  { name: 'keb1Doc', maxCount: 1 },
+  { name: 'keb2Doc', maxCount: 1 },
+  { name: 'keb3Doc', maxCount: 1 },
+  { name: 'ecDoc', maxCount: 1 },
+  { name: 'occcDoc', maxCount: 1 },
+  { name: 'reraDoc', maxCount: 1 },
+  { name: 'ownershipDocuments', maxCount: 1 },
+  { name: 'regulatoryApprovals', maxCount: 1 },
+  { name: 'gpsPhotos', maxCount: 1 },
+  { name: 'landDoc', maxCount: 1 },
+  { name: 'motherDeedDoc', maxCount: 1 },
+  { name: 'familyTreeDoc', maxCount: 1 },
+  { name: 'nocDoc', maxCount: 1 },
+  { name: 'legalDisputeDoc', maxCount: 1 },
+  { name: 'jvDoc', maxCount: 1 }
+]), async (req, res) => { // Made async
   const { id } = req.params;
-  
   try {
-    const busboy = require('busboy');
-    const bb = busboy({ headers: req.headers });
+    const updates = [];
+    const values = [];
+    let paramIndex = 1; // Start index for parameterized query
 
-    const fields = {};
-    const files = {};
-    let isFinished = false;
-
-    bb.on('file', (fieldname, file, filename, encoding, mimetype) => {
-      console.log('File ', fieldname, filename, encoding, mimetype);
-      // Buffer the file for Cloudinary upload
-      const fileBuffer = [];
-      file.on('data', (data) => { fileBuffer.push(data); });
-      file.on('end', () => { files[fieldname] = { buffer: Buffer.concat(fileBuffer), mimetype, originalname: filename }; });
-    });
-
-    bb.on('field', (fieldname, val) => {
-      fields[fieldname] = val;
-    });
-
-    bb.on('finish', async () => {
-      if (isFinished) return; // Prevent multiple finish events
-      isFinished = true;
-
-      try {
-        console.log('Busboy finished parsing form.');
-        console.log('Parsed fields:', fields);
-        console.log('Parsed files:', Object.keys(files));
-
-        const updates = [];
-        const values = [];
-        let paramIndex = 1;
-
-        // Define expected document field names and their corresponding DB column names
-        // These should match the names used in the frontend form data
-        const documentFieldMapping = {
-          // Property Documents
-          ownershipDoc: 'ownershipDocPath',
-          motherDeedDoc: 'motherDeedDocPath',
-          gpsDoc: 'gpsDocPath',
-          familyTreeDoc: 'familyTreeDocPath',
-          nocDoc: 'nocDocPath',
-          legalDisputeDoc: 'legalDisputeDocPath',
-          jvDoc: 'jvDocPath',
-          // Regulatory Approval Documents
-          bbmpDoc: 'bbmpDocPath',
-          planApprovalDoc: 'planApprovalDocPath',
-          khataCertificateDoc: 'khataCertificateDocPath',
-          fiscalYearLandTaxInvoiceDoc: 'fiscalYearLandTaxInvoiceDocPath',
-          bettermentCertificateDoc: 'bettermentCertificateDocPath',
-          bwssb1Doc: 'bwssb1DocPath',
-          bwssb2Doc: 'bwssb2DocPath',
-          bwssb3Doc: 'bwssb3DocPath',
-          keb1Doc: 'keb1DocPath',
-          keb2Doc: 'keb2DocPath',
-          keb3Doc: 'keb3DocPath',
-          ecDoc: 'ecDocPath',
-          occcDoc: 'occcDocPath',
-          reraDoc: 'reraDocPath',
-          // Assuming 'landDoc' is also a property document
-          landDoc: 'landDocPath'
-        };
-
-        // Process and upload files to Cloudinary
-        for (const [fieldname, file] of Object.entries(files)) {
-          const dbColumnName = documentFieldMapping[fieldname];
-          if (file.buffer && dbColumnName) {
-            try {
-              const uploadPromise = new Promise((resolve, reject) => {
-                cloudinary.uploader.upload_stream({
-                  folder: 'clutch_app_uploads',
-                  resource_type: 'auto',
-                  public_id: `${fieldname}_${id}_${Date.now()}` // Use fieldname for clarity
-                }, (error, result) => {
-                  if (error) {
-                    console.error(`Cloudinary upload error for ${fieldname}:`, error);
-                    reject(error);
-                    return;
-                  }
-                  resolve(result);
-                }).end(file.buffer);
-              });
-              
-              const result = await uploadPromise;
-              console.log(`Successfully uploaded ${fieldname} to Cloudinary:`, result.secure_url);
-              updates.push(`${dbColumnName} = $${paramIndex++}`);
-              values.push(result.secure_url);
-            } catch (uploadErr) {
-              console.error(`Error uploading ${fieldname}:`, uploadErr);
-              // Continue with other files
-            }
-          } else if (!dbColumnName) {
-            console.warn(`Received unexpected file field: ${fieldname}`);
-          }
+    const addUpdate = (fieldName, files) => {
+        if (files && files[fieldName]) {
+             updates.push(`${fieldName}Path = $${paramIndex++}`);
+             values.push(files[fieldName][0].path); // Cloudinary URL
+             // Add logic here to get and potentially delete old Cloudinary file if updating
+             // This requires fetching the old value from the DB first.
         }
+    };
 
-        if (updates.length > 0) {
-          // Add the user ID as the last parameter for the WHERE clause
-          values.push(id);
-          
-          // Execute the update query
-          await db.query(`UPDATE users SET ${updates.join(', ')} WHERE id = $${paramIndex}`, values);
-          console.log('Successfully updated database with document paths for userId:', id);
-          resolve({ success: true, message: 'Documents uploaded and database updated successfully' });
-        } else {
-          console.log('No valid document files were uploaded or processed for userId:', id);
-          resolve({ success: true, message: 'No files uploaded or no updates.' });
-        }
-      } catch (error) {
-        console.error('Error processing documents:', error);
-        reject(error);
-      }
-    });
+    // Use the helper to add updates for each possible file field
+    addUpdate('bbmpDoc', req.files);
+    addUpdate('planApprovalDoc', req.files);
+    addUpdate('khataCertificateDoc', req.files);
+    addUpdate('fiscalYearLandTaxInvoiceDoc', req.files);
+    addUpdate('bettermentCertificateDoc', req.files);
+    addUpdate('bwssb1Doc', req.files);
+    addUpdate('bwssb2Doc', req.files);
+    addUpdate('bwssb3Doc', req.files);
+    addUpdate('keb1Doc', req.files);
+    addUpdate('keb2Doc', req.files);
+    addUpdate('keb3Doc', req.files);
+    addUpdate('ecDoc', req.files);
+    addUpdate('occcDoc', req.files);
+    addUpdate('reraDoc', req.files);
+    addUpdate('ownershipDocuments', req.files);
+    addUpdate('regulatoryApprovals', req.files);
+    addUpdate('gpsPhotos', req.files);
+    addUpdate('landDoc', req.files);
+    addUpdate('motherDeedDoc', req.files);
+    addUpdate('familyTreeDoc', req.files);
+    addUpdate('nocDoc', req.files);
+    addUpdate('legalDisputeDoc', req.files);
+    addUpdate('jvDoc', req.files);
 
-    bb.on('error', (err) => {
-      console.error('Busboy error in document upload:', err);
-      // Suppress 'Unexpected end of form' error if response already sent or processing succeeded
-      if (!res.headersSent && (!err || !err.message || !err.message.includes('Unexpected end of form'))) {
-         // Only reject if it's a genuine error and response hasn't been sent
-        reject(err);
-      } else if (res.headersSent) {
-        console.warn('Suppressed Busboy error after headers sent:', err.message);
-      } else {
-         console.warn('Suppressed Expected Busboy error (Unexpected end of form):', err.message);
-      }
-    });
+    if (updates.length > 0) {
+      // Add the user ID as the last parameter
+      values.push(id);
+      
+      // Execute the update query - adjust for pg parameterized query
+      await db.query(`UPDATE users SET ${updates.join(', ')} WHERE id = $${paramIndex}`, values);
 
-    bb.on('close', () => {
-      console.log('Busboy close event fired (document upload)');
-    });
-
-    // Pipe the request stream to Busboy
-    req.pipe(bb);
-  } catch (error) {
-    console.error('Error in document upload endpoint handler:', error);
-    // Catch errors that occur before busboy setup
-    if (!res.headersSent) {
-      res.status(500).json({
-        success: false,
-        message: 'Error processing document upload request',
-        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
-      });
+      res.json({ success: true, message: 'Application submitted successfully' });
+    } else {
+      res.json({ success: true, message: 'No files uploaded or no updates.' });
     }
+  } catch (err) {
+    console.error('Error in /api/submit/:id:', err);
+     // Consider deleting uploaded files from Cloudinary if DB update fails
+    res.status(500).json({ success: false, message: err.message });
   }
 });
 
-// --- Submit Application - Kept for original flow, might be deprecated now ---
-// Consider if this endpoint is still needed or if document-upload replaces its file logic
-// If keeping, ensure it doesn't conflict or duplicate file handling
-app.post('/api/submit/:id', (req, res, next) => {
-  req.skipMulter = true;
-  next();
-}, (req, res) => {
+// Endpoint for uploading regulatory docs after application - DEPRECATED, will be replaced by optional-documents endpoint
+// Removing this endpoint as it's marked as deprecated and redundant with optional-documents.
+// app.post('/api/user/:id/regulatory-upload', ...);
+
+
+// --- Endpoint for uploading optional documents after initial submission ---
+// Use uploadWithFilter for file uploads
+app.post('/api/user/:id/optional-documents', uploadWithFilter.fields([
+  { name: 'bbmpDoc', maxCount: 1 },
+  { name: 'planApprovalDoc', maxCount: 1 },
+  { name: 'khataCertificateDoc', maxCount: 1 },
+  { name: 'fiscalYearLandTaxInvoiceDoc', maxCount: 1 },
+  { name: 'bettermentCertificateDoc', maxCount: 1 },
+  { name: 'ecDoc', maxCount: 1 },
+  { name: 'bwssb1Doc', maxCount: 1 },
+  { name: 'bwssb2Doc', maxCount: 1 },
+  { name: 'bwssb3Doc', maxCount: 1 },
+  { name: 'keb1Doc', maxCount: 1 },
+  { name: 'keb2Doc', maxCount: 1 },
+  { name: 'keb3Doc', maxCount: 1 },
+  { name: 'legalDisputeDoc', maxCount: 1 },
+  { name: 'jvDoc', maxCount: 1 } // JV is optional if ownership < 100
+]), async (req, res) => { // Made async
   const { id } = req.params;
-  console.log('Received request for /api/submit/:id (Manual Multipart Handling)');
-  
-  // Log request end/close for diagnostics
-  req.on('end', () => console.log('Request stream ended (submit)'));
-  req.on('close', () => console.log('Request stream closed (submit)'));
-  
-  // Create a promise to handle the entire request
-  const handleRequest = new Promise((resolve, reject) => {
-    try {
-      const busboy = require('busboy');
-      const bb = busboy({ headers: req.headers });
+  try {
+    const updates = [];
+    const values = [];
+    let paramIndex = 1; // Start index for parameterized query
 
-      const fields = {};
-      const files = {};
-      let isFinished = false;
-
-      bb.on('file', (fieldname, file, filename, encoding, mimetype) => {
-        console.log('File ', fieldname, filename, encoding, mimetype);
-        // This endpoint might not expect files, but let's log them if they arrive
-        console.warn(`File received at /api/submit/:id endpoint: ${fieldname}`);
-         // Decide if you want to buffer/process these files here or ignore them.
-         // Given the new /api/document-upload/:id endpoint, it's likely you should IGNORE files here.
-        // To ignore, simply consume the stream:
-        file.resume(); 
-      });
-
-      bb.on('field', (fieldname, val) => {
-        console.log('Field ', fieldname, val);
-        fields[fieldname] = val;
-      });
-
-      bb.on('finish', async () => {
-        if (isFinished) return; // Prevent multiple finish events
-        isFinished = true;
-        
-        try {
-          console.log('Busboy finished parsing form for /api/submit/:id.');
-          console.log('Parsed fields:', fields);
-          // Note: Parsed files will be empty here if file.resume() is used.
-          console.log('Parsed files (should be empty):', Object.keys(files));
-
-          // This endpoint likely handles non-file form data submissions, 
-          // like project details, corporate info, etc.
-          // Process the fields here and update the database accordingly.
-          // Example (you'll need to add logic to map fields to DB updates):
-          
-          // Assuming fields object contains relevant update data:
-          // const { projectName, creditRequirement, landLocation, ... } = fields;
-          // Build SQL update query based on fields...
-
-          // For now, just acknowledging receipt:
-          console.log('Processing fields for /api/submit/:id...');
-          // TODO: Implement database update logic based on fields object for /api/submit/:id
-          // This part needs to be implemented based on what data this endpoint is expected to handle besides files.
-          // If this endpoint is only for file uploads, it might be redundant with /api/document-upload/:id.
-
-          resolve({ success: true, message: 'Fields received for application submission (file handling skipped).' });
-
-        } catch (error) {
-          console.error('Error processing fields for /api/submit/:id:', error);
-          reject(error);
+     const addUpdate = (fieldName, files) => {
+        if (files && files[fieldName]) {
+             updates.push(`${fieldName}Path = $${paramIndex++}`);
+             values.push(files[fieldName][0].path); // Cloudinary URL
+             // Add logic here to get and potentially delete old Cloudinary file if updating
+             // This requires fetching the old value from the DB first.
         }
-      });
+    };
 
-      bb.on('error', (err) => {
-        console.error('Busboy error in /api/submit/:id:', err);
-         // Suppress 'Unexpected end of form' error if response already sent or processing succeeded
-        if (!res.headersSent && (!err || !err.message || !err.message.includes('Unexpected end of form'))) {
-           // Only reject if it's a genuine error and response hasn't been sent
-          reject(err);
-        } else if (res.headersSent) {
-          console.warn('Suppressed Busboy error after headers sent (/api/submit/:id):', err.message);
-        } else {
-           console.warn('Suppressed Expected Busboy error (Unexpected end of form in /api/submit/:id):', err.message);
-        }
-      });
+    addUpdate('bbmpDoc', req.files);
+    addUpdate('planApprovalDoc', req.files);
+    addUpdate('khataCertificateDoc', req.files);
+    addUpdate('fiscalYearLandTaxInvoiceDoc', req.files);
+    addUpdate('bettermentCertificateDoc', req.files);
+    addUpdate('ecDoc', req.files);
 
-      bb.on('close', () => {
-        console.log('Busboy close event fired (submit)');
-      });
-
-      // Pipe the request stream to Busboy
-      req.pipe(bb);
-    } catch (error) {
-      console.error('Error in /api/submit/:id endpoint handler:', error);
-      // Catch errors that occur before busboy setup
-      if (!res.headersSent) {
-        res.status(500).json({
-          success: false,
-          message: 'Error processing application submission request',
-          error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
-        });
-      }
+    // Handle multiple BWSSB documents
+    for (let i = 1; i <= 3; i++) {
+      addUpdate(`bwssb${i}Doc`, req.files);
     }
-  });
 
-  // Handle the promise result
-  handleRequest
-    .then(result => {
-      if (!res.headersSent) {
-        res.json(result);
-      }
-    })
-    .catch(error => {
-      console.error('Error in /api/submit/:id promise chain:', error);
-      if (!res.headersSent) {
-        res.status(500).json({
-          success: false,
-          message: 'Error submitting application',
-          error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
-        });
-      }
-    });
+    // Handle multiple KEB documents
+    for (let i = 1; i <= 3; i++) {
+       addUpdate(`keb${i}Doc`, req.files);
+    }
+
+    addUpdate('legalDisputeDoc', req.files);
+    addUpdate('jvDoc', req.files);
+
+    if (updates.length > 0) {
+      // Add the user ID as the last parameter
+      values.push(id);
+      
+      // Execute the update query - adjust for pg parameterized query
+      await db.query(`UPDATE users SET ${updates.join(', ')} WHERE id = $${paramIndex}`, values);
+
+      res.json({ success: true, message: 'Optional documents uploaded successfully' });
+    } else {
+      res.status(400).json({ success: false, message: 'No files uploaded.' });
+    }
+  } catch (err) {
+    console.error('Error in /api/user/:id/optional-documents:', err);
+     // Consider deleting uploaded files from Cloudinary if DB update fails
+    res.status(500).json({ success: false, message: err.message });
+  }
 });
 
 // --- Delete user (and cascade to user_credentials) ---
@@ -970,35 +631,11 @@ app.put('/api/regulatory/:id', async (req, res) => { // Made async
 // --- Get All Users (Admin Dashboard) ---
 app.get('/api/users', async (req, res) => { // Made async
   try {
-    console.log('Attempting to fetch all users...');
-    const results = await db.query(`
-      SELECT 
-        id, 
-        userUniqueId, 
-        fullName, 
-        corporatePhone, 
-        createdAt, 
-        creditRequirement, 
-        status, 
-        cinNumber, 
-        crust_score, 
-        crust_rating, 
-        risk_level 
-      FROM users
-    `);
-    console.log(`Successfully fetched ${results.rows.length} users`);
+    const results = await db.query(`SELECT id, userUniqueId, fullName, corporatePhone, createdAt, creditRequirement, status, cinNumber, crust_score, crust_rating, risk_level FROM users`);
     res.json(results.rows); // PostgreSQL results are in .rows
   } catch (err) {
-    console.error('Detailed error in /api/users:', {
-      message: err.message,
-      stack: err.stack,
-      code: err.code
-    });
-    res.status(500).json({ 
-      success: false, 
-      message: 'Error fetching users',
-      error: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error'
-    });
+    console.error('Error getting all users:', err);
+    res.status(500).json({ success: false, message: err.message });
   }
 });
 
@@ -1205,44 +842,7 @@ app.get('/api/user/:id/status', async (req, res) => { // Made async
 // Removed the static file serving block for the frontend build
 // if (process.env.NODE_ENV === 'production') { ... }
 
-// Add a general error handler as a last resort
-app.use((err, req, res, next) => {
-  console.error('FINAL CATCH-ALL ERROR HANDLER:', {
-    message: err.message,
-    stack: err.stack,
-    status: err.status,
-    code: err.code
-  });
-
-  const statusCode = err.status || 500;
-  const message = statusCode === 500 && process.env.NODE_ENV !== 'development' 
-    ? 'Internal Server Error' 
-    : err.message;
-
-  res.status(statusCode).json({
-    success: false,
-    message: message,
-    error: process.env.NODE_ENV === 'development' ? err : {}
-  });
-});
-
 // Start the server
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
-});
-
-// Add a health check endpoint
-app.get('/health', async (req, res) => {
-  try {
-    const client = await db.connect();
-    client.release();
-    res.json({ status: 'healthy', database: 'connected' });
-  } catch (err) {
-    console.error('Health check failed:', err);
-    res.status(500).json({ 
-      status: 'unhealthy', 
-      database: 'disconnected',
-      error: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error'
-    });
-  }
 });
