@@ -599,110 +599,113 @@ app.post('/api/submit/:id', (req, res, next) => {
   // Skip multer middleware for this route
   req.skipMulter = true;
   next();
-}, async (req, res) => {
+}, (req, res) => {
   const { id } = req.params;
-  
-  try {
-    const busboy = require('busboy');
-    const bb = busboy({ headers: req.headers });
 
-    const fields = {};
-    const files = {};
-    let isFinished = false;
+  // Wrap Busboy logic in a Promise to ensure response is sent only after finish
+  const handleRequest = new Promise((resolve, reject) => {
+    try {
+      const busboy = require('busboy');
+      const bb = busboy({ headers: req.headers });
 
-    bb.on('file', (fieldname, file, filename, encoding, mimetype) => {
-      console.log('File ', fieldname, filename, encoding, mimetype);
-      // Buffer the file for Cloudinary upload
-      const fileBuffer = [];
-      file.on('data', (data) => { fileBuffer.push(data); });
-      file.on('end', () => { files[fieldname] = { buffer: Buffer.concat(fileBuffer), mimetype, originalname: filename }; });
-    });
+      const fields = {};
+      const files = {};
+      let isFinished = false;
 
-    bb.on('field', (fieldname, val) => {
-      fields[fieldname] = val;
-    });
-
-    bb.on('finish', async () => {
-      if (isFinished) return; // Prevent multiple finish events
-      isFinished = true;
-
-      try {
-        console.log('Busboy finished parsing form.');
-        console.log('Parsed fields:', fields);
-        console.log('Parsed files:', Object.keys(files));
-
-        const updates = [];
-        const values = [];
-        let paramIndex = 1;
-
-        // Upload files to Cloudinary and prepare database updates
-        for (const [fieldname, file] of Object.entries(files)) {
-          try {
-            const uploadPromise = new Promise((resolve, reject) => {
-              cloudinary.uploader.upload_stream({
-                folder: 'clutch_app_uploads',
-                resource_type: 'auto',
-                public_id: `${fieldname}_${id}_${Date.now()}`
-              }, (error, result) => {
-                if (error) {
-                  console.error(`Cloudinary upload error (${fieldname}):`, error);
-                  reject(error);
-                  return;
-                }
-                resolve(result);
-              }).end(file.buffer);
-            });
-            
-            const result = await uploadPromise;
-            updates.push(`${fieldname}Path = $${paramIndex++}`);
-            values.push(result.secure_url);
-          } catch (uploadErr) {
-            console.error(`Error uploading ${fieldname}:`, uploadErr);
-            // Continue with other files
-          }
-        }
-
-        if (updates.length > 0) {
-          // Add the user ID as the last parameter
-          values.push(id);
-          
-          // Execute the update query
-          await db.query(`UPDATE users SET ${updates.join(', ')} WHERE id = $${paramIndex}`, values);
-          res.json({ success: true, message: 'Application submitted successfully' });
-        } else {
-          res.json({ success: true, message: 'No files uploaded or no updates.' });
-        }
-      } catch (error) {
-        console.error('Error processing files:', error);
-        if (!res.headersSent) {
-          res.status(500).json({
-            success: false,
-            message: 'Error processing files',
-            error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
-          });
-        }
-      }
-    });
-
-    bb.on('error', (err) => {
-      console.error('Busboy error:', err);
-      if (!res.headersSent) {
-        res.status(500).json({ success: false, message: 'Error processing form data' });
-      }
-    });
-
-    // Pipe the request stream to Busboy
-    req.pipe(bb);
-  } catch (error) {
-    console.error('Error in document upload:', error);
-    if (!res.headersSent) {
-      res.status(500).json({
-        success: false,
-        message: 'Error uploading documents',
-        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      bb.on('file', (fieldname, file, filename, encoding, mimetype) => {
+        console.log('File ', fieldname, filename, encoding, mimetype);
+        // Buffer the file for Cloudinary upload
+        const fileBuffer = [];
+        file.on('data', (data) => { fileBuffer.push(data); });
+        file.on('end', () => { files[fieldname] = { buffer: Buffer.concat(fileBuffer), mimetype, originalname: filename }; });
       });
+
+      bb.on('field', (fieldname, val) => {
+        fields[fieldname] = val;
+      });
+
+      bb.on('finish', async () => {
+        if (isFinished) return; // Prevent multiple finish events
+        isFinished = true;
+        try {
+          console.log('Busboy finished parsing form.');
+          console.log('Parsed fields:', fields);
+          console.log('Parsed files:', Object.keys(files));
+
+          const updates = [];
+          const values = [];
+          let paramIndex = 1;
+
+          // Upload files to Cloudinary and prepare database updates
+          for (const [fieldname, file] of Object.entries(files)) {
+            try {
+              const uploadPromise = new Promise((resolve, reject) => {
+                cloudinary.uploader.upload_stream({
+                  folder: 'clutch_app_uploads',
+                  resource_type: 'auto',
+                  public_id: `${fieldname}_${id}_${Date.now()}`
+                }, (error, result) => {
+                  if (error) {
+                    console.error(`Cloudinary upload error (${fieldname}):`, error);
+                    reject(error);
+                    return;
+                  }
+                  resolve(result);
+                }).end(file.buffer);
+              });
+              const result = await uploadPromise;
+              updates.push(`${fieldname}Path = $${paramIndex++}`);
+              values.push(result.secure_url);
+            } catch (uploadErr) {
+              console.error(`Error uploading ${fieldname}:`, uploadErr);
+              // Continue with other files
+            }
+          }
+
+          if (updates.length > 0) {
+            // Add the user ID as the last parameter
+            values.push(id);
+            // Execute the update query
+            await db.query(`UPDATE users SET ${updates.join(', ')} WHERE id = $${paramIndex}`, values);
+            resolve({ success: true, message: 'Application submitted successfully' });
+          } else {
+            resolve({ success: true, message: 'No files uploaded or no updates.' });
+          }
+        } catch (error) {
+          console.error('Error processing files:', error);
+          reject(error);
+        }
+      });
+
+      bb.on('error', (err) => {
+        console.error('Busboy error:', err);
+        reject(err);
+      });
+
+      // Pipe the request stream to Busboy
+      req.pipe(bb);
+    } catch (error) {
+      reject(error);
     }
-  }
+  });
+
+  // Handle the promise result
+  handleRequest
+    .then(result => {
+      if (!res.headersSent) {
+        res.json(result);
+      }
+    })
+    .catch(error => {
+      console.error('Error in document upload:', error);
+      if (!res.headersSent) {
+        res.status(500).json({
+          success: false,
+          message: 'Error uploading documents',
+          error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+        });
+      }
+    });
 });
 
 // --- Endpoint for uploading optional documents after initial submission ---
