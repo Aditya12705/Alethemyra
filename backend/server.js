@@ -362,7 +362,7 @@ app.post('/api/user/:id/crust-score', async (req, res) => { // Made async
     const result = calculateCrustScore(modelInputs);
 
     // Save the calculated score to the database - adjust for pg parameterized query
-    const { compositeScore, rating } = result;
+    const { compositeScore, rating, risk } = result;
     const updateQuery = `UPDATE users SET crust_score = $1, crust_rating = $2 WHERE id = $3`;
     await db.query(updateQuery, [compositeScore, rating, id]);
 
