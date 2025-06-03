@@ -161,7 +161,8 @@ const initializeDatabase = async () => {
           motherDeedDocPath VARCHAR(255),
           familyTreeDocPath VARCHAR(255),
           nocDocPath VARCHAR(255),
-          legalDisputeDocPath VARCHAR(255)
+          legalDisputeDocPath VARCHAR(255),
+          risk_level VARCHAR(255)
         )
       `);
       console.log('Table users checked/created');
