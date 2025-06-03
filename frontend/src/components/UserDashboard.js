@@ -521,7 +521,40 @@ const UserDashboard = () => {
     const fetchUser = async () => {
       try {
         const response = await axios.get(`${config.API_URL}/api/user/${userId}`);
-        setUser(response.data);
+        const userData = response.data;
+        // Transform snake_case keys to camelCase
+        const transformedUser = {
+          id: userData.id,
+          userUniqueId: userData.useruniqueid,
+          fullName: userData.fullname,
+          corporatePhone: userData.corporatephone,
+          createdAt: userData.createdat,
+          creditRequirement: userData.creditrequirement,
+          status: userData.status,
+          cinNumber: userData.cinnumber,
+          panCardPath: userData.pancardpath,
+          aadhaarCardPath: userData.aadhaarcardpath,
+          panNumber: userData.pannumber,
+          aadhaarNumber: userData.aadhaarnumber,
+          projectName: userData.projectname,
+          landLocation: userData.landlocation,
+          landSize: userData.landsize,
+          marketValue: userData.marketvalue,
+          crust_score: userData.crust_score,
+          crust_rating: userData.crust_rating,
+          risk_level: userData.risk_level,
+          tinNumber: userData.tinnumber,
+          gstNumber: userData.gstnumber,
+          companyName: userData.companyname,
+          plannedStartDate: userData.plannedstartdate,
+          ownershipPercentage: userData.ownershippercentage,
+          financialContribution: userData.financialcontribution,
+          partners: userData.partners,
+          hasRegulatoryApprovals: userData.hasregulatoryapprovals,
+          hasGpsPhotos: userData.hasgpsphotos,
+          expectedPermissionDate: userData.expectedpermissiondate,
+        };
+        setUser(transformedUser);
       } catch (err) {
         setError('Error fetching user details.');
       }
