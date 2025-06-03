@@ -611,12 +611,13 @@ app.post('/api/submit/:id', (req, res, next) => {
   next();
 }, (req, res) => {
   const { id } = req.params;
-
+  console.log('Received request for /api/submit/:id (Manual Multipart Handling)');
+  
   // Log request end/close for diagnostics
   req.on('end', () => console.log('Request stream ended (submit)'));
   req.on('close', () => console.log('Request stream closed (submit)'));
-
-  // Wrap Busboy logic in a Promise to ensure response is sent only after finish
+  
+  // Create a promise to handle the entire request
   const handleRequest = new Promise((resolve, reject) => {
     try {
       const busboy = require('busboy');
@@ -635,12 +636,14 @@ app.post('/api/submit/:id', (req, res, next) => {
       });
 
       bb.on('field', (fieldname, val) => {
+        console.log('Field ', fieldname, val);
         fields[fieldname] = val;
       });
 
       bb.on('finish', async () => {
         if (isFinished) return; // Prevent multiple finish events
         isFinished = true;
+        
         try {
           console.log('Busboy finished parsing form.');
           console.log('Parsed fields:', fields);
@@ -667,7 +670,9 @@ app.post('/api/submit/:id', (req, res, next) => {
                   resolve(result);
                 }).end(file.buffer);
               });
+              
               const result = await uploadPromise;
+              console.log(`Successfully uploaded ${fieldname} to Cloudinary:`, result.secure_url);
               updates.push(`${fieldname}Path = $${paramIndex++}`);
               values.push(result.secure_url);
             } catch (uploadErr) {
@@ -679,10 +684,13 @@ app.post('/api/submit/:id', (req, res, next) => {
           if (updates.length > 0) {
             // Add the user ID as the last parameter
             values.push(id);
+            
             // Execute the update query
             await db.query(`UPDATE users SET ${updates.join(', ')} WHERE id = $${paramIndex}`, values);
+            console.log('Successfully updated database with file paths');
             resolve({ success: true, message: 'Application submitted successfully' });
           } else {
+            console.log('No files were uploaded');
             resolve({ success: true, message: 'No files uploaded or no updates.' });
           }
         } catch (error) {
