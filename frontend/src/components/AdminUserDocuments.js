@@ -115,7 +115,7 @@ const AdminUserDocuments = () => {
           <h2 style={{fontWeight:700,fontSize:20,color:'#7C6A4E',marginBottom:16}}>Document Viewer</h2>
           {selectedDoc ? (
             <iframe
-              src={`${config.API_URL}/${selectedDoc.path}`}
+              src={selectedDoc.path}
               title={selectedDoc.type||selectedDoc.name}
               style={{width:'100%',height:'60vh',border:'1.5px solid #e5e5e5',borderRadius:8}}
             />
