@@ -270,7 +270,7 @@ app.post('/api/user/register', async (req, res) => { // Made async
       // Generate random userUniqueId
       const userUniqueId = generateUserUniqueId();
       await db.query(
-        `INSERT INTO users (user_id, userUniqueId, fullName, panNumber, aadhaarNumber, createdAt) VALUES ($1, $2, '', '', '', $3)`,
+        `INSERT INTO users (user_id, userUniqueId, fullName, panNumber, aadhaarNumber, createdAt) VALUES ($1, $2, NULL, NULL, NULL, $3)`,
         [userId, userUniqueId, getCurrentDate()]
       );
       res.json({ success: true, userId: userId, userUniqueId });
@@ -314,6 +314,7 @@ app.post('/api/user/login', async (req, res) => { // Made async
     if (userResults.rows.length > 0) {
       console.log('User data from users table:', userResults.rows[0]);
       const user = userResults.rows[0];
+      console.log('Raw user object before kycDone calculation:', user);
       const kycDone = !!user.fullName && !!user.panNumber && !!user.aadhaarNumber;
       console.log(`Login for userId: ${userId}, kycDone: ${kycDone}, fullName: ${user.fullName}, panNumber: ${user.panNumber}, aadhaarNumber: ${user.aadhaarNumber}`);
       res.json({ success: true, userId: userId, userUniqueId: user.userUniqueId, kycDone: kycDone });
@@ -389,6 +390,8 @@ app.post('/api/kyc', uploadWithFilter.fields([
       // Save the Cloudinary URLs (or public_id if you prefer) to the database
       [fullName, panNumber, aadhaarNumber, panCardUrl, aadhaarCardUrl, createdAt, userId]
     );
+    const updatedUser = await db.query(`SELECT fullName, panNumber, aadhaarNumber FROM users WHERE user_id = $1`, [userId]);
+    console.log('User data after KYC update:', updatedUser.rows[0]);
     console.log(`Executing KYC UPDATE query for userId: ${userId} with fullName: ${fullName}, panNumber: ${panNumber}, aadhaarNumber: ${aadhaarNumber}, panCardUrl: ${panCardUrl}, aadhaarCardUrl: ${aadhaarCardUrl}, createdAt: ${createdAt}`);
     console.log(`KYC submitted for userId: ${userId}, fullName: ${fullName}, panNumber: ${panNumber}, aadhaarNumber: ${aadhaarNumber}`);
     res.json({ success: true, userId: userId });
