@@ -320,8 +320,11 @@ app.post('/api/user/login', async (req, res) => { // Made async
       const user = latestUserResults.rows[0];
       console.log('User data from users table (re-fetched):', user);
       console.log('Raw user object before kycDone calculation (re-fetched):', user);
-      const kycDone = !!user.fullName && !!user.panNumber && !!user.aadhaarNumber;
-      console.log(`Login for userId: ${userId}, kycDone: ${kycDone}, fullName: ${user.fullName}, panNumber: ${user.panNumber}, aadhaarNumber: ${user.aadhaarNumber}`);
+      const isFullNamePresent = (typeof user.fullname === 'string' && user.fullname.length > 0);
+      const isPanNumberPresent = (typeof user.pannumber === 'string' && user.pannumber.length > 0);
+      const isAadhaarNumberPresent = (typeof user.aadhaarnumber === 'string' && user.aadhaarnumber.length > 0);
+      const kycDone = isFullNamePresent && isPanNumberPresent && isAadhaarNumberPresent;
+      console.log(`Login for userId: ${userId}, kycDone: ${kycDone}, fullName: ${user.fullname} (present: ${isFullNamePresent}), panNumber: ${user.pannumber} (present: ${isPanNumberPresent}), aadhaarNumber: ${user.aadhaarnumber} (present: ${isAadhaarNumberPresent})`);
       res.json({ success: true, userId: userId, userUniqueId: user.userUniqueId, kycDone: kycDone });
     } else {
       // This case should ideally not happen if user_credentials and users tables are in sync
