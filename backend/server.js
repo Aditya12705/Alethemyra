@@ -312,9 +312,14 @@ app.post('/api/user/login', async (req, res) => { // Made async
     );
 
     if (userResults.rows.length > 0) {
-      console.log('User data from users table:', userResults.rows[0]);
-      const user = userResults.rows[0];
-      console.log('Raw user object before kycDone calculation:', user);
+      // Re-fetch user data to ensure it's up-to-date after KYC
+      const latestUserResults = await db.query(
+        `SELECT userUniqueId, fullName, panNumber, aadhaarNumber FROM users WHERE user_id = $1`,
+        [userId]
+      );
+      const user = latestUserResults.rows[0];
+      console.log('User data from users table (re-fetched):', user);
+      console.log('Raw user object before kycDone calculation (re-fetched):', user);
       const kycDone = !!user.fullName && !!user.panNumber && !!user.aadhaarNumber;
       console.log(`Login for userId: ${userId}, kycDone: ${kycDone}, fullName: ${user.fullName}, panNumber: ${user.panNumber}, aadhaarNumber: ${user.aadhaarNumber}`);
       res.json({ success: true, userId: userId, userUniqueId: user.userUniqueId, kycDone: kycDone });
