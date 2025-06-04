@@ -287,19 +287,40 @@ app.post('/api/user/login', async (req, res) => { // Made async
   if (!name || !number) {
     return res.status(400).json({ success: false, message: 'Name and number are required.' });
   }
+
+  // Validate that 'number' contains only digits
+  if (!/^[0-9]+$/.test(number)) {
+    return res.status(400).json({ success: false, message: 'Phone number must contain only digits.' });
+  }
+
   try {
-    const results = await db.query(
-        `SELECT uc.id, u.userUniqueId, u.fullName, u.panNumber, u.aadhaarNumber FROM user_credentials uc JOIN users u ON uc.id = u.user_id WHERE uc.name = $1 AND uc.number = $2`,
-        [name, String(number)]
-      );
-      
-      if (results.rows.length > 0) {
-        const user = results.rows[0];
-        const kycDone = !!user.fullName && !!user.panNumber && !!user.aadhaarNumber;
-        console.log(`Login for userId: ${user.id}, kycDone: ${kycDone}, fullName: ${user.fullName}, panNumber: ${user.panNumber}, aadhaarNumber: ${user.aadhaarNumber}`);
-        res.json({ success: true, userId: user.id, userUniqueId: user.userUniqueId, kycDone: kycDone });
-      } else {
-      res.status(401).json({ success: false, message: 'Invalid credentials or user not found.' });
+    const credentialResults = await db.query(
+      `SELECT id FROM user_credentials WHERE name = $1 AND number = $2`,
+      [name, String(number)]
+    );
+
+    if (credentialResults.rows.length === 0) {
+      return res.status(401).json({ success: false, message: 'Invalid credentials or user not found.' });
+    }
+
+    const userId = credentialResults.rows[0].id;
+    console.log(`Found user_credential with userId: ${userId}`);
+
+    const userResults = await db.query(
+      `SELECT userUniqueId, fullName, panNumber, aadhaarNumber FROM users WHERE user_id = $1`,
+      [userId]
+    );
+
+    if (userResults.rows.length > 0) {
+      console.log('User data from users table:', userResults.rows[0]);
+      const user = userResults.rows[0];
+      const kycDone = !!user.fullName && !!user.panNumber && !!user.aadhaarNumber;
+      console.log(`Login for userId: ${userId}, kycDone: ${kycDone}, fullName: ${user.fullName}, panNumber: ${user.panNumber}, aadhaarNumber: ${user.aadhaarNumber}`);
+      res.json({ success: true, userId: userId, userUniqueId: user.userUniqueId, kycDone: kycDone });
+    } else {
+      // This case should ideally not happen if user_credentials and users tables are in sync
+      console.warn(`User data not found in 'users' table for userId: ${userId}`);
+      res.status(401).json({ success: false, message: 'User data incomplete. Please complete KYC.' });
     }
   } catch (err) {
       console.error('Error in /api/user/login:', err.message);
@@ -354,7 +375,7 @@ app.post('/api/kyc', uploadWithFilter.fields([
       if (aadhaarCardUrl) cloudinary.uploader.destroy(req.files['aadhaarCard'][0].public_id);
       return res.status(404).json({ success: false, message: 'User not found in user_credentials.' });
     }
-    const userExists = await db.query(`SELECT * FROM users WHERE id = $1`, [userId]);
+    const userExists = await db.query(`SELECT * FROM users WHERE user_id = $1`, [userId]);
      if (userExists.rows.length === 0) {
       // Consider deleting uploaded files from Cloudinary
       if (panCardUrl) cloudinary.uploader.destroy(req.files['panCard'][0].public_id);
@@ -368,6 +389,7 @@ app.post('/api/kyc', uploadWithFilter.fields([
       // Save the Cloudinary URLs (or public_id if you prefer) to the database
       [fullName, panNumber, aadhaarNumber, panCardUrl, aadhaarCardUrl, createdAt, userId]
     );
+    console.log(`Executing KYC UPDATE query for userId: ${userId} with fullName: ${fullName}, panNumber: ${panNumber}, aadhaarNumber: ${aadhaarNumber}, panCardUrl: ${panCardUrl}, aadhaarCardUrl: ${aadhaarCardUrl}, createdAt: ${createdAt}`);
     console.log(`KYC submitted for userId: ${userId}, fullName: ${fullName}, panNumber: ${panNumber}, aadhaarNumber: ${aadhaarNumber}`);
     res.json({ success: true, userId: userId });
 
