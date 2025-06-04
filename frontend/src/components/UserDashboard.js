@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import '../login.css';
+import '../../login.css';
 import Navbar from './Navbar';
 import { useParams, useNavigate, Routes, Route } from 'react-router-dom';
 import OptionalDocumentUpload from './OptionalDocumentUpload';
@@ -53,7 +53,7 @@ const ApplicationDetails = ({ user, documents }) => (
           <div><b>Aadhaar Number:</b> {user.aadhaarNumber}</div>
           <div>
             <b>PAN Card:</b> {user.panCardPath ? 
-              <a href={`${config.API_URL}/${user.panCardPath}`} 
+              <a href={`${user.panCardPath}`} 
                  target="_blank" 
                  rel="noopener noreferrer"
                  style={{color:'#003B6F', marginLeft:8}}>
@@ -62,7 +62,7 @@ const ApplicationDetails = ({ user, documents }) => (
           </div>
           <div>
             <b>Aadhaar Card:</b> {user.aadhaarCardPath ? 
-              <a href={`${config.API_URL}/${user.aadhaarCardPath}`} 
+              <a href={`${user.aadhaarCardPath}`} 
                  target="_blank" 
                  rel="noopener noreferrer"
                  style={{color:'#003B6F', marginLeft:8}}>
