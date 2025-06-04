@@ -289,13 +289,15 @@ app.post('/api/user/login', async (req, res) => { // Made async
   }
   try {
     const results = await db.query(
-      `SELECT uc.id, u.userUniqueId FROM user_credentials uc JOIN users u ON uc.id = u.user_id WHERE uc.name = $1 AND uc.number = $2`,
-      [name, number]
-    );
-    
-    if (results.rows.length > 0) {
-      res.json({ success: true, userId: results.rows[0].id, userUniqueId: results.rows[0].userUniqueId });
-    } else {
+        `SELECT uc.id, u.userUniqueId, u.fullName, u.panNumber, u.aadhaarNumber FROM user_credentials uc JOIN users u ON uc.id = u.user_id WHERE uc.name = $1 AND uc.number = $2`,
+        [name, number]
+      );
+      
+      if (results.rows.length > 0) {
+        const user = results.rows[0];
+        const kycDone = !!user.fullName && !!user.panNumber && !!user.aadhaarNumber;
+        res.json({ success: true, userId: user.id, userUniqueId: user.userUniqueId, kycDone: kycDone });
+      } else {
       res.status(401).json({ success: false, message: 'Invalid credentials or user not found.' });
     }
   } catch (err) {
