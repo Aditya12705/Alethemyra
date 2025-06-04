@@ -290,12 +290,13 @@ app.post('/api/user/login', async (req, res) => { // Made async
   try {
     const results = await db.query(
         `SELECT uc.id, u.userUniqueId, u.fullName, u.panNumber, u.aadhaarNumber FROM user_credentials uc JOIN users u ON uc.id = u.user_id WHERE uc.name = $1 AND uc.number = $2`,
-        [name, number]
+        [name, String(number)]
       );
       
       if (results.rows.length > 0) {
         const user = results.rows[0];
         const kycDone = !!user.fullName && !!user.panNumber && !!user.aadhaarNumber;
+        console.log(`Login for userId: ${user.id}, kycDone: ${kycDone}, fullName: ${user.fullName}, panNumber: ${user.panNumber}, aadhaarNumber: ${user.aadhaarNumber}`);
         res.json({ success: true, userId: user.id, userUniqueId: user.userUniqueId, kycDone: kycDone });
       } else {
       res.status(401).json({ success: false, message: 'Invalid credentials or user not found.' });
@@ -367,6 +368,7 @@ app.post('/api/kyc', uploadWithFilter.fields([
       // Save the Cloudinary URLs (or public_id if you prefer) to the database
       [fullName, panNumber, aadhaarNumber, panCardUrl, aadhaarCardUrl, createdAt, userId]
     );
+    console.log(`KYC submitted for userId: ${userId}, fullName: ${fullName}, panNumber: ${panNumber}, aadhaarNumber: ${aadhaarNumber}`);
     res.json({ success: true, userId: userId });
 
   } catch (e) {
