@@ -364,7 +364,7 @@ app.post('/api/kyc', uploadWithFilter.fields([
 
     // Update users table - adjust for pg parameterized query
     await db.query(
-      `UPDATE users SET fullName = $1, panNumber = $2, aadhaarNumber = $3, panCardPath = $4, aadhaarCardPath = $5, createdAt = $6 WHERE id = $7`,
+      `UPDATE users SET fullName = $1, panNumber = $2, aadhaarNumber = $3, panCardPath = $4, aadhaarCardPath = $5, createdAt = $6 WHERE user_id = $7`,
       // Save the Cloudinary URLs (or public_id if you prefer) to the database
       [fullName, panNumber, aadhaarNumber, panCardUrl, aadhaarCardUrl, createdAt, userId]
     );
