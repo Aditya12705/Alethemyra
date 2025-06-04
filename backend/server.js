@@ -307,14 +307,14 @@ app.post('/api/user/login', async (req, res) => { // Made async
     console.log(`Found user_credential with userId: ${userId}`);
 
     const userResults = await db.query(
-      `SELECT userUniqueId, fullName, panNumber, aadhaarNumber FROM users WHERE user_id = $1`,
+      `SELECT userUniqueId, fullName, panNumber, aadhaarNumber, panCardPath, aadhaarCardPath FROM users WHERE user_id = $1`,
       [userId]
     );
 
     if (userResults.rows.length > 0) {
       // Re-fetch user data to ensure it's up-to-date after KYC
       const latestUserResults = await db.query(
-        `SELECT userUniqueId, fullName, panNumber, aadhaarNumber FROM users WHERE user_id = $1`,
+        `SELECT userUniqueId, fullName, panNumber, aadhaarNumber, panCardPath, aadhaarCardPath FROM users WHERE user_id = $1`,
         [userId]
       );
       const user = latestUserResults.rows[0];
@@ -325,7 +325,7 @@ app.post('/api/user/login', async (req, res) => { // Made async
       const isAadhaarNumberPresent = (typeof user.aadhaarnumber === 'string' && user.aadhaarnumber.length > 0);
       const kycDone = isFullNamePresent && isPanNumberPresent && isAadhaarNumberPresent;
       console.log(`Login for userId: ${userId}, kycDone: ${kycDone}, fullName: ${user.fullname} (present: ${isFullNamePresent}), panNumber: ${user.pannumber} (present: ${isPanNumberPresent}), aadhaarNumber: ${user.aadhaarnumber} (present: ${isAadhaarNumberPresent})`);
-      res.json({ success: true, userId: userId, userUniqueId: user.userUniqueId, kycDone: kycDone });
+      res.json({ success: true, userId: userId, userUniqueId: user.userUniqueId, kycDone: kycDone, panCardPath: user.pancardpath, aadhaarCardPath: user.aadhaarcardpath });
     } else {
       // This case should ideally not happen if user_credentials and users tables are in sync
       console.warn(`User data not found in 'users' table for userId: ${userId}`);
