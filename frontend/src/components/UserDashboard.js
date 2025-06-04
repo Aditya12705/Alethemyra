@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import '../../login.css';
+import '../login.css';
 import Navbar from './Navbar';
 import { useParams, useNavigate, Routes, Route } from 'react-router-dom';
 import OptionalDocumentUpload from './OptionalDocumentUpload';
