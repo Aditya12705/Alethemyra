@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import '../login.css';
+import '../../login.css';
 import Navbar from './Navbar';
 import { useParams, useNavigate, Routes, Route } from 'react-router-dom';
 import OptionalDocumentUpload from './OptionalDocumentUpload';
@@ -466,7 +466,7 @@ const DocumentSection = ({
                     {doc.type}
                   </div>
                   <a
-                    href={`${config.API_URL}/${doc.path}`}
+                    href={`${doc.url}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     style={{
@@ -562,6 +562,7 @@ const UserDashboard = () => {
     const fetchDocs = async () => {
       try {
         const res = await axios.get(`${config.API_URL}/api/user/${userId}/documents`);
+        console.log('Documents fetched:', res.data.documents);
         setDocuments(res.data.documents || []);
       } catch {}
     };
